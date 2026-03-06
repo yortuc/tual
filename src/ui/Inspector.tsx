@@ -1,0 +1,163 @@
+import React, { useState, useEffect } from 'react'
+import { world } from '../ecs/World'
+import { eventBus } from '../ecs/EventBus'
+import { editorStore } from '../editor/EditorStore'
+import { Component } from '../ecs/Component'
+import { Prop } from '../props/Prop'
+import { FillComponent } from '../components/styles/FillComponent'
+import { StrokeComponent } from '../components/styles/StrokeComponent'
+import { ShadowComponent } from '../components/styles/ShadowComponent'
+import { OpacityComponent } from '../components/styles/OpacityComponent'
+import { ClonerComponent } from '../components/modifiers/ClonerComponent'
+import { MirrorComponent } from '../components/modifiers/MirrorComponent'
+
+const ADDABLE: { label: string; create: () => Component }[] = [
+  { label: 'Fill',    create: () => new FillComponent() },
+  { label: 'Stroke',  create: () => new StrokeComponent() },
+  { label: 'Shadow',  create: () => new ShadowComponent() },
+  { label: 'Opacity', create: () => new OpacityComponent() },
+  { label: 'Cloner',  create: () => new ClonerComponent() },
+  { label: 'Mirror',  create: () => new MirrorComponent() },
+]
+
+function PropRow({ prop }: { prop: Prop<unknown> }) {
+  const [, tick] = useState(0)
+
+  const onChange = (v: unknown) => {
+    prop.value = v
+    eventBus.emit('world:changed')
+    tick(n => n + 1)
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 6, alignItems: 'center', marginBottom: 5 }}>
+      <span style={{ color: '#777', fontSize: 11, textAlign: 'right', paddingRight: 4 }}>{prop.label}</span>
+      <div>{prop.renderEditorUnsafe(onChange)}</div>
+    </div>
+  )
+}
+
+function ComponentSection({ component, entityId }: { component: Component; entityId: number }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const props = component.getProps()
+
+  return (
+    <div style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}>
+      <div
+        onClick={() => setCollapsed(c => !c)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '5px 10px',
+          background: '#222',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#ccc',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: '#555', fontSize: 10 }}>{collapsed ? '▶' : '▼'}</span>
+          {component.label}
+        </span>
+        <button
+          onClick={e => { e.stopPropagation(); world.removeComponent(entityId, component) }}
+          style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}
+        >
+          ×
+        </button>
+      </div>
+      {!collapsed && props.length > 0 && (
+        <div style={{ padding: '8px 10px', background: '#1a1a1a' }}>
+          {props.map(([key, prop]) => <PropRow key={key} prop={prop} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function Inspector() {
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [components, setComponents] = useState<Component[]>([])
+  const [showAdd, setShowAdd] = useState(false)
+
+  useEffect(() => {
+    const refresh = () => {
+      const id = editorStore.selectedEntityId
+      setSelectedId(id)
+      setComponents(id !== null ? [...world.getComponents(id)] : [])
+    }
+    const u1 = eventBus.on('editor:selection-changed', refresh)
+    const u2 = eventBus.on('world:changed', refresh)
+    return () => { u1(); u2() }
+  }, [])
+
+  if (selectedId === null) {
+    return (
+      <div style={{ padding: 16, color: '#444', fontSize: 12 }}>
+        Select an entity to inspect.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ padding: '7px 12px', borderBottom: '1px solid #2e2e2e', fontSize: 13, color: '#ccc', fontWeight: 600 }}>
+        {world.getEntityName(selectedId)}
+        <span style={{ color: '#444', fontSize: 11, fontWeight: 400, marginLeft: 6 }}>#{selectedId}</span>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+        {components.map((comp, i) => (
+          <ComponentSection key={i} component={comp} entityId={selectedId} />
+        ))}
+
+        <div style={{ position: 'relative', marginTop: 8 }}>
+          <button
+            onClick={() => setShowAdd(s => !s)}
+            style={{
+              width: '100%',
+              padding: '6px',
+              background: '#1e1e1e',
+              border: '1px dashed #383838',
+              color: '#666',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+          >
+            + Add Component
+          </button>
+          {showAdd && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              zIndex: 100,
+              background: '#252525',
+              border: '1px solid #3a3a3a',
+              borderRadius: 4,
+              overflow: 'hidden',
+              marginTop: 2,
+            }}>
+              {ADDABLE.map(({ label, create }) => (
+                <div
+                  key={label}
+                  onClick={() => { world.addComponent(selectedId, create()); setShowAdd(false) }}
+                  style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 12, color: '#bbb' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#333')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
