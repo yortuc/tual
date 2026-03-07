@@ -3,6 +3,7 @@ import { Renderer } from '../renderer/Renderer'
 import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
+import { TransformComponent } from '../components/styles/TransformComponent'
 
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -11,9 +12,28 @@ export function Viewport() {
   const draw = useCallback(() => {
     const renderer = rendererRef.current
     if (!renderer) return
+
     renderer.clear()
     const allItems = world.getEntityIds().flatMap(id => world.runPipeline(id))
     renderer.render(allItems)
+
+    // Selection pass
+    const selectedId = editorStore.selectedEntityId
+    if (selectedId !== null) {
+      const selectedItems = world.runPipeline(selectedId)
+      renderer.renderSelectionOutlines(selectedItems)
+
+      // Component gizmos
+      const components = world.getComponents(selectedId)
+      const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
+      const origin = transform
+        ? { x: transform.position.value.x, y: transform.position.value.y }
+        : { x: 0, y: 0 }
+      const ctx = renderer.getContext()
+      for (const comp of components) {
+        comp.renderGizmo?.({ ctx, origin })
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -33,10 +53,12 @@ export function Viewport() {
     ro.observe(canvas.parentElement!)
     handleResize()
 
-    const unsub = eventBus.on('world:changed', draw)
+    const unsub1 = eventBus.on('world:changed', draw)
+    const unsub2 = eventBus.on('editor:selection-changed', draw)
     return () => {
       ro.disconnect()
-      unsub()
+      unsub1()
+      unsub2()
     }
   }, [draw])
 

@@ -1,4 +1,4 @@
-import { Component, PipelineStage } from './Component'
+import { Component, PipelineStage, GIZMO_PALETTE } from './Component'
 import type { DrawItem } from '../renderer/DrawItem'
 import { eventBus } from './EventBus'
 
@@ -6,6 +6,7 @@ export class World {
   private entities = new Map<number, Component[]>()
   private entityNames = new Map<number, string>()
   private nextId = 1
+  private colorIndex = 0
 
   createEntity(name?: string): number {
     const id = this.nextId++
@@ -25,6 +26,7 @@ export class World {
     this.entities.clear()
     this.entityNames.clear()
     this.nextId = 1
+    this.colorIndex = 0
     eventBus.emit('world:changed')
   }
 
@@ -42,6 +44,8 @@ export class World {
   }
 
   addComponent(entityId: number, component: Component): void {
+    component.gizmoColor = GIZMO_PALETTE[this.colorIndex % GIZMO_PALETTE.length]
+    this.colorIndex++
     this.entities.get(entityId)?.push(component)
     eventBus.emit('world:changed')
   }

@@ -60,6 +60,11 @@ function ComponentSection({ component, entityId }: { component: Component; entit
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: '#555', fontSize: 10 }}>{collapsed ? '▶' : '▼'}</span>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: component.gizmoColor,
+            display: 'inline-block', flexShrink: 0,
+          }} />
           {component.label}
         </span>
         <button

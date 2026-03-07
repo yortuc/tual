@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create vite@latest . -- --template react-ts --yes 2>&1)",
+      "Bash(npm create vite@latest /tmp/ces-designer-tmp -- --template react-ts 2>&1 && cp -r /tmp/ces-designer-tmp/. /Users/yortuc/kiro-sessions/ces-designer/)",
+      "Bash(cp -r /Users/yortuc/kiro-sessions/ces-designer/tmp/ces-designer-tmp/. /Users/yortuc/kiro-sessions/ces-designer/ && rm -rf /Users/yortuc/kiro-sessions/ces-designer/tmp)",
+      "Bash(npm install 2>&1)",
+      "Bash(npx tsc --noEmit 2>&1)",
+      "Bash(npm run dev 2>&1)",
+      "Bash(git init && git add src/ index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json package.json package-lock.json eslint.config.js public/)",
+      "Bash(cat > /Users/yortuc/kiro-sessions/ces-designer/.gitignore << 'EOF'\nnode_modules/\ndist/\n.DS_Store\nEOF)",
+      "Bash(git add .gitignore && git status)",
+      "Bash(git commit -m \"$\\(cat <<'EOF'\nInitial implementation of CES Designer\n\nPure ECS architecture with a render pipeline \\(Shape → Modifier → Style → Effect\\).\nEntities are plain IDs; any component combination is allowed.\n\n- ECS core: World, Component base class, EventBus\n- 6 prop types: Number, Color, String, Bool, Enum, Vec2 \\(self-contained with React editors\\)\n- 10 components: Rect/Circle/Text shapes, Transform/Fill/Stroke/Shadow/Opacity styles, Cloner/Mirror modifiers\n- Canvas 2D renderer driven by DrawItem pipeline\n- Unity-style UI: Scene Tree \\(left\\), Viewport \\(center\\), Inspector \\(right\\)\n- Demo scene with radially cloned circles and a rect on startup\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm install -D vitest 2>&1 | tail -5)",
+      "Bash(npm test 2>&1)",
+      "Bash(npx tsc --noEmit 2>&1 && npm test 2>&1 | tail -8)"
+    ]
+  }
+}

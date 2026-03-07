@@ -8,15 +8,37 @@ export enum PipelineStage {
   Effect = 3,
 }
 
+export const GIZMO_PALETTE = [
+  '#a78bfa', // purple
+  '#f472b6', // pink
+  '#34d399', // green
+  '#fbbf24', // yellow
+  '#fb923c', // orange
+  '#60a5fa', // light blue
+  '#e879f9', // fuchsia
+]
+
+export interface GizmoContext {
+  ctx: CanvasRenderingContext2D
+  // World-space origin of the entity (from TransformComponent, or {0,0})
+  origin: { x: number; y: number }
+}
+
 export abstract class Component {
   abstract readonly stage: PipelineStage
   abstract readonly label: string
+
+  // Assigned by World.addComponent — color used for both canvas gizmo and inspector dot
+  gizmoColor: string = GIZMO_PALETTE[0]
 
   // Shape components produce initial DrawItems
   generate?(): DrawItem[]
 
   // All other components transform the DrawItem array
   process?(items: DrawItem[]): DrawItem[]
+
+  // Optional: draw a canvas overlay explaining this component's transformation
+  renderGizmo?(gctx: GizmoContext): void
 
   getProps(): Array<[string, Prop<unknown>]> {
     return Object.entries(this).filter(
