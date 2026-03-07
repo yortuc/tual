@@ -25,11 +25,23 @@ interface DragState {
   startPanY: number
 }
 
+interface ObjectDragState {
+  entityId: number
+  startScreenX: number
+  startScreenY: number
+  startWx: number      // mouse world position at drag start
+  startWy: number
+  startPosX: number    // entity origin at drag start
+  startPosY: number
+}
+
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<Renderer | null>(null)
   const viewRef = useRef<ViewState>({ zoom: 1, panX: 0, panY: 0 })
   const dragRef = useRef<DragState | null>(null)
+  const objectDragRef = useRef<ObjectDragState | null>(null)
+  const mouseDownHitRef = useRef<number | null>(null)
   const hasDraggedRef = useRef(false)
   const [zoomPct, setZoomPct] = useState(100)
   const [cursor, setCursor] = useState('default')
@@ -185,15 +197,8 @@ export function Viewport() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [zoomAt, resetZoom, getSelectionScreenPos])
 
-  // Hit test — converts screen coords → world coords before testing
-  const hitTest = useCallback((sx: number, sy: number) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const { zoom, panX, panY } = viewRef.current
-    const wx = (sx - rect.left - panX) / zoom
-    const wy = (sy - rect.top  - panY) / zoom
-
+  // Returns entity id at world position, or null
+  const getHitEntity = useCallback((wx: number, wy: number): number | null => {
     let hit: number | null = null
     for (const id of world.getEntityIds()) {
       for (const item of world.runPipeline(id)) {
@@ -208,18 +213,61 @@ export function Viewport() {
         }
       }
     }
-    editorStore.select(hit)
+    return hit
   }, [])
 
-  // Mouse drag to pan
+  // Converts screen coords → world coords
+  const screenToWorld = useCallback((sx: number, sy: number) => {
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    const { zoom, panX, panY } = viewRef.current
+    return { wx: (sx - rect.left - panX) / zoom, wy: (sy - rect.top - panY) / zoom }
+  }, [])
+
+  // Mouse down — branch into object drag or canvas pan
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+    if (!canvasRef.current) return
+    const { wx, wy } = screenToWorld(e.clientX, e.clientY)
+    const hit = getHitEntity(wx, wy)
+    mouseDownHitRef.current = hit
     hasDraggedRef.current = false
+
+    if (hit !== null) {
+      editorStore.select(hit)
+      const transform = world.getComponents(hit).find(c => c instanceof TransformComponent) as TransformComponent | undefined
+      objectDragRef.current = {
+        entityId: hit,
+        startScreenX: e.clientX,
+        startScreenY: e.clientY,
+        startWx: wx,
+        startWy: wy,
+        startPosX: transform?.position.value.x ?? 0,
+        startPosY: transform?.position.value.y ?? 0,
+      }
+    } else {
+      dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+    }
     setCursor('grabbing')
   }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      // Object drag
+      if (objectDragRef.current) {
+        const od = objectDragRef.current
+        if (!hasDraggedRef.current && Math.hypot(e.clientX - od.startScreenX, e.clientY - od.startScreenY) > 4) {
+          hasDraggedRef.current = true
+        }
+        if (!hasDraggedRef.current) return
+        const { wx, wy } = screenToWorld(e.clientX, e.clientY)
+        const transform = world.getComponents(od.entityId).find(c => c instanceof TransformComponent) as TransformComponent | undefined
+        if (transform) {
+          transform.position.value = { x: od.startPosX + (wx - od.startWx), y: od.startPosY + (wy - od.startWy) }
+          eventBus.emit('world:changed')
+        }
+        return
+      }
+      // Canvas pan
       const drag = dragRef.current
       if (!drag) return
       const dx = e.clientX - drag.startX
@@ -229,7 +277,7 @@ export function Viewport() {
       draw()
     }
     const handleMouseUp = () => {
-      if (!dragRef.current) return
+      objectDragRef.current = null
       dragRef.current = null
       setCursor('default')
     }
@@ -239,22 +287,52 @@ export function Viewport() {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [draw])
+  }, [draw, screenToWorld])
 
-  // Touch pan + tap (iPad / Pencil)
+  // Touch — object drag or canvas pan (iPad / Pencil)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return
       const t = e.touches[0]
-      dragRef.current = { startX: t.clientX, startY: t.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+      const { wx, wy } = screenToWorld(t.clientX, t.clientY)
+      const hit = getHitEntity(wx, wy)
+      mouseDownHitRef.current = hit
       hasDraggedRef.current = false
+      if (hit !== null) {
+        editorStore.select(hit)
+        const transform = world.getComponents(hit).find(c => c instanceof TransformComponent) as TransformComponent | undefined
+        objectDragRef.current = {
+          entityId: hit,
+          startScreenX: t.clientX, startScreenY: t.clientY,
+          startWx: wx, startWy: wy,
+          startPosX: transform?.position.value.x ?? 0,
+          startPosY: transform?.position.value.y ?? 0,
+        }
+      } else {
+        dragRef.current = { startX: t.clientX, startY: t.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+      }
     }
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1 || !dragRef.current) return
+      if (e.touches.length !== 1) return
       e.preventDefault()
       const t = e.touches[0]
+      if (objectDragRef.current) {
+        const od = objectDragRef.current
+        if (!hasDraggedRef.current && Math.hypot(t.clientX - od.startScreenX, t.clientY - od.startScreenY) > 4) {
+          hasDraggedRef.current = true
+        }
+        if (!hasDraggedRef.current) return
+        const { wx, wy } = screenToWorld(t.clientX, t.clientY)
+        const transform = world.getComponents(od.entityId).find(c => c instanceof TransformComponent) as TransformComponent | undefined
+        if (transform) {
+          transform.position.value = { x: od.startPosX + (wx - od.startWx), y: od.startPosY + (wy - od.startWy) }
+          eventBus.emit('world:changed')
+        }
+        return
+      }
+      if (!dragRef.current) return
       const dx = t.clientX - dragRef.current.startX
       const dy = t.clientY - dragRef.current.startY
       if (!hasDraggedRef.current && Math.hypot(dx, dy) > 4) hasDraggedRef.current = true
@@ -262,11 +340,10 @@ export function Viewport() {
       draw()
     }
     const handleTouchEnd = (e: TouchEvent) => {
-      if (!dragRef.current) return
-      if (!hasDraggedRef.current && e.changedTouches.length > 0) {
-        const t = e.changedTouches[0]
-        hitTest(t.clientX, t.clientY)
+      if (!hasDraggedRef.current && mouseDownHitRef.current === null && e.changedTouches.length > 0) {
+        editorStore.select(null)
       }
+      objectDragRef.current = null
       dragRef.current = null
     }
     canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -277,11 +354,11 @@ export function Viewport() {
       canvas.removeEventListener('touchmove', handleTouchMove)
       canvas.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [draw, hitTest])
+  }, [draw, screenToWorld, getHitEntity])
 
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (hasDraggedRef.current) return  // was a pan, not a tap
-    hitTest(e.clientX, e.clientY)
+  const handleClick = () => {
+    if (hasDraggedRef.current) return
+    if (mouseDownHitRef.current === null) editorStore.select(null)
   }
 
   return (
