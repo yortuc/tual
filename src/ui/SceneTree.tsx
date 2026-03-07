@@ -22,8 +22,8 @@ function createEntity(type: ShapeType): void {
 }
 
 export function SceneTree() {
-  const [entityIds, setEntityIds] = useState<number[]>([])
-  const [selected, setSelected] = useState<number | null>(null)
+  const [entityIds, setEntityIds] = useState<number[]>(() => [...world.getEntityIds()])
+  const [selected, setSelected] = useState<number | null>(() => editorStore.selectedEntityId)
 
   useEffect(() => {
     const unsub1 = eventBus.on('world:changed', () => setEntityIds([...world.getEntityIds()]))

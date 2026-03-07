@@ -85,8 +85,11 @@ function ComponentSection({ component, onRemove }: { component: Component; onRem
 }
 
 export function Inspector() {
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [components, setComponents] = useState<Component[]>([])
+  const [selectedId, setSelectedId] = useState<number | null>(() => editorStore.selectedEntityId)
+  const [components, setComponents] = useState<Component[]>(() => {
+    const id = editorStore.selectedEntityId
+    return id !== null ? [...world.getComponents(id)] : []
+  })
   const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
 
