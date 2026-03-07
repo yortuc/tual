@@ -3,7 +3,9 @@ import { Renderer } from '../renderer/Renderer'
 import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
+import { PipelineStage } from '../ecs/Component'
 import { TransformComponent } from '../components/styles/TransformComponent'
+import type { DrawItem } from '../renderer/DrawItem'
 
 interface ViewState {
   zoom: number
@@ -53,12 +55,34 @@ export function Viewport() {
       const origin = transform
         ? { x: transform.position.value.x, y: transform.position.value.y }
         : { x: 0, y: 0 }
-      const screenOrigin = {
-        x: origin.x * zoom + panX,
-        y: origin.y * zoom + panY,
-      }
-      for (const comp of components) {
-        comp.renderGizmo?.({ ctx, origin, screenOrigin, zoom })
+      const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
+
+      // Sort components by pipeline stage (stable — preserves insertion order within a stage)
+      const sorted = [...components].sort((a, b) => a.stage - b.stage)
+
+      for (let i = 0; i < sorted.length; i++) {
+        const comp = sorted[i]
+        if (!comp.renderGizmo) continue
+
+        let screenOrigins: { x: number; y: number }[]
+
+        if (comp.stage === PipelineStage.Modifier) {
+          // Run a seed item through all subsequent components to find multiplied positions.
+          // This causes the first cloner's gizmo to appear at each position produced by later cloners.
+          const seed: DrawItem = { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, shape: { type: 'rect', width: 0, height: 0 }, style: { opacity: 1 } }
+          let items: DrawItem[] = [seed]
+          for (let j = i + 1; j < sorted.length; j++) {
+            if (sorted[j].process) items = sorted[j].process!(items)
+          }
+          screenOrigins = items.map(item => ({
+            x: item.transform.x * zoom + panX,
+            y: item.transform.y * zoom + panY,
+          }))
+        } else {
+          screenOrigins = [entityScreenOrigin]
+        }
+
+        comp.renderGizmo({ ctx, origin, screenOrigins, zoom })
       }
     }
   }, [])

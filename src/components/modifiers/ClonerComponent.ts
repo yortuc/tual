@@ -16,71 +16,54 @@ export class ClonerComponent extends Component {
   spacingY = new NumberProp('Spacing Y', { default: 80, min: 0, max: 1000 })
   columns = new NumberProp('Columns', { default: 4, min: 1, max: 50 })
 
-  renderGizmo({ ctx, screenOrigin, zoom }: GizmoContext): void {
-    const { x, y } = screenOrigin
+  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
     const n = Math.round(this.count.value)
     ctx.save()
     ctx.strokeStyle = this.gizmoColor
     ctx.fillStyle = this.gizmoColor
     ctx.lineWidth = 1
     ctx.globalAlpha = 0.65
-    ctx.setLineDash([5, 4])
 
-    if (this.mode.value === 'radial') {
-      const r = this.radius.value * zoom
-      // Dashed circle at radius
-      ctx.beginPath()
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.stroke()
-      // Dot at each clone position
-      ctx.setLineDash([])
-      for (let i = 0; i < n; i++) {
-        const angle = (i / n) * Math.PI * 2
+    for (const { x, y } of screenOrigins) {
+      ctx.setLineDash([5, 4])
+
+      if (this.mode.value === 'radial') {
+        const r = this.radius.value * zoom
         ctx.beginPath()
-        ctx.arc(
-          x + Math.cos(angle) * r,
-          y + Math.sin(angle) * r,
-          3.5, 0, Math.PI * 2
-        )
-        ctx.fill()
-      }
-    } else if (this.mode.value === 'linear') {
-      const sx = this.spacingX.value * zoom
-      const sy = this.spacingY.value * zoom
-      // Dashed line from first to last clone
-      ctx.beginPath()
-      ctx.moveTo(x, y)
-      ctx.lineTo(x + (n - 1) * sx, y + (n - 1) * sy)
-      ctx.stroke()
-      // Dot at each clone position
-      ctx.setLineDash([])
-      for (let i = 0; i < n; i++) {
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.setLineDash([])
+        for (let i = 0; i < n; i++) {
+          const angle = (i / n) * Math.PI * 2
+          ctx.beginPath()
+          ctx.arc(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 3.5, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      } else if (this.mode.value === 'linear') {
+        const sx = this.spacingX.value * zoom
+        const sy = this.spacingY.value * zoom
         ctx.beginPath()
-        ctx.arc(x + i * sx, y + i * sy, 3.5, 0, Math.PI * 2)
-        ctx.fill()
-      }
-    } else if (this.mode.value === 'grid') {
-      const cols = Math.round(this.columns.value)
-      const rows = Math.ceil(n / cols)
-      const sx = this.spacingX.value * zoom
-      const sy = this.spacingY.value * zoom
-      // Dashed bounding rect
-      ctx.strokeRect(
-        x - sx / 2,
-        y - sy / 2,
-        (cols - 1) * sx + sx,
-        (rows - 1) * sy + sy,
-      )
-      // Dot at each grid position
-      ctx.setLineDash([])
-      for (let i = 0; i < n; i++) {
-        ctx.beginPath()
-        ctx.arc(
-          x + (i % cols) * sx,
-          y + Math.floor(i / cols) * sy,
-          3.5, 0, Math.PI * 2
-        )
-        ctx.fill()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + (n - 1) * sx, y + (n - 1) * sy)
+        ctx.stroke()
+        ctx.setLineDash([])
+        for (let i = 0; i < n; i++) {
+          ctx.beginPath()
+          ctx.arc(x + i * sx, y + i * sy, 3.5, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      } else if (this.mode.value === 'grid') {
+        const cols = Math.round(this.columns.value)
+        const rows = Math.ceil(n / cols)
+        const sx = this.spacingX.value * zoom
+        const sy = this.spacingY.value * zoom
+        ctx.strokeRect(x - sx / 2, y - sy / 2, (cols - 1) * sx + sx, (rows - 1) * sy + sy)
+        ctx.setLineDash([])
+        for (let i = 0; i < n; i++) {
+          ctx.beginPath()
+          ctx.arc(x + (i % cols) * sx, y + Math.floor(i / cols) * sy, 3.5, 0, Math.PI * 2)
+          ctx.fill()
+        }
       }
     }
 
