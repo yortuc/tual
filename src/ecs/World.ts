@@ -62,33 +62,24 @@ export class World {
     return this.entities.get(entityId) ?? []
   }
 
+  reorderComponent(entityId: number, fromIndex: number, toIndex: number): void {
+    const components = this.entities.get(entityId)
+    if (!components) return
+    const [comp] = components.splice(fromIndex, 1)
+    components.splice(toIndex, 0, comp)
+    eventBus.emit('world:changed')
+  }
+
   runPipeline(entityId: number): DrawItem[] {
     const components = this.entities.get(entityId) ?? []
-
-    // Group by stage, preserving insertion order within each stage
-    const byStage = new Map<PipelineStage, Component[]>()
-    for (const comp of components) {
-      if (!byStage.has(comp.stage)) byStage.set(comp.stage, [])
-      byStage.get(comp.stage)!.push(comp)
-    }
-
-    const stages = [
-      PipelineStage.Shape,
-      PipelineStage.Modifier,
-      PipelineStage.Style,
-      PipelineStage.Effect,
-    ]
-
     let items: DrawItem[] = []
 
-    for (const stage of stages) {
-      const stageComps = byStage.get(stage) ?? []
-      for (const comp of stageComps) {
-        if (stage === PipelineStage.Shape && comp.generate) {
-          items = [...items, ...comp.generate()]
-        } else if (comp.process) {
-          items = comp.process(items)
-        }
+    // Run in user-defined order — no stage sorting
+    for (const comp of components) {
+      if (comp.stage === PipelineStage.Shape && comp.generate) {
+        items = [...items, ...comp.generate()]
+      } else if (comp.process) {
+        items = comp.process(items)
       }
     }
 

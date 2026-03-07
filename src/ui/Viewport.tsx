@@ -112,14 +112,13 @@ export function Viewport() {
         : { x: 0, y: 0 }
       const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
 
-      // Sort components by pipeline stage (stable — preserves insertion order within a stage)
-      const sorted = [...components].sort((a, b) => a.stage - b.stage)
+      const hasModifier = components.some(c => c.stage === PipelineStage.Modifier)
 
-      for (let i = 0; i < sorted.length; i++) {
-        const comp = sorted[i]
+      for (let i = 0; i < components.length; i++) {
+        const comp = components[i]
         if (!comp.renderGizmo) continue
-        const screenOrigins = getComponentScreenOrigins(comp, i, sorted, entityScreenOrigin, zoom, panX, panY)
-        comp.renderGizmo({ ctx, origin, screenOrigins, zoom })
+        const screenOrigins = getComponentScreenOrigins(comp, i, components, entityScreenOrigin, zoom, panX, panY)
+        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier })
       }
     }
   }, [])
@@ -256,11 +255,10 @@ export function Viewport() {
       const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
       const origin = transform ? transform.position.value : { x: 0, y: 0 }
       const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
-      const sorted = [...components].sort((a, b) => a.stage - b.stage)
-      for (let i = 0; i < sorted.length; i++) {
-        const comp = sorted[i]
+      for (let i = 0; i < components.length; i++) {
+        const comp = components[i]
         if (!comp.getGizmoHandles) continue
-        const screenOrigins = getComponentScreenOrigins(comp, i, sorted, entityScreenOrigin, zoom, panX, panY)
+        const screenOrigins = getComponentScreenOrigins(comp, i, components, entityScreenOrigin, zoom, panX, panY)
         const handles = comp.getGizmoHandles(screenOrigins, zoom)
         for (const handle of handles) {
           if (Math.hypot(canvasX - handle.x, canvasY - handle.y) < 10) {

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
-import { Component } from '../ecs/Component'
+import { Component, PipelineStage } from '../ecs/Component'
 import { Prop } from '../props/Prop'
 import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
@@ -42,12 +42,26 @@ function PropRow({ prop }: { prop: Prop<unknown> }) {
   )
 }
 
-function ComponentSection({ component, onRemove }: { component: Component; onRemove: () => void }) {
+function ComponentSection({
+  component, onRemove, onDragStart, onDragOver, onDrop,
+}: {
+  component: Component
+  onRemove: () => void
+  onDragStart?: () => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDrop?: () => void
+}) {
   const [collapsed, setCollapsed] = useState(false)
   const props = component.getProps()
 
   return (
-    <div style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={e => { e.preventDefault(); onDragOver?.(e) }}
+      onDrop={e => { e.preventDefault(); onDrop?.() }}
+      style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}
+    >
       <div
         onClick={() => setCollapsed(c => !c)}
         style={{
@@ -64,6 +78,7 @@ function ComponentSection({ component, onRemove }: { component: Component; onRem
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: '#444', fontSize: 11, cursor: 'grab', marginRight: 2 }}>⠿</span>
           <span style={{ color: '#555', fontSize: 10 }}>{collapsed ? '▶' : '▼'}</span>
           <span style={{
             width: 8, height: 8, borderRadius: '50%',
@@ -96,6 +111,7 @@ export function Inspector() {
   })
   const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
+  const dragIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
     const refresh = () => {
@@ -132,8 +148,32 @@ export function Inspector() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+        {(() => {
+          const firstShapeIdx = components.findIndex(c => c.stage === PipelineStage.Shape)
+          const hasOrderWarning = firstShapeIdx > 0
+          return hasOrderWarning && (
+            <div style={{
+              marginBottom: 8, padding: '6px 10px',
+              background: '#2a1f00', border: '1px solid #5a3f00',
+              borderRadius: 4, fontSize: 11, color: '#c8922a', lineHeight: 1.5,
+            }}>
+              Shape component should come first in the pipeline — components above it receive no input.
+            </div>
+          )
+        })()}
         {components.map((comp, i) => (
-          <ComponentSection key={i} component={comp} onRemove={() => world.removeComponent(selectedId, comp)} />
+          <ComponentSection
+            key={i}
+            component={comp}
+            onRemove={() => world.removeComponent(selectedId, comp)}
+            onDragStart={() => { dragIndexRef.current = i }}
+            onDrop={() => {
+              if (dragIndexRef.current !== null && dragIndexRef.current !== i) {
+                world.reorderComponent(selectedId, dragIndexRef.current, i)
+              }
+              dragIndexRef.current = null
+            }}
+          />
         ))}
 
         <div style={{ position: 'relative', marginTop: 8 }}>
