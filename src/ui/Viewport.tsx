@@ -246,6 +246,10 @@ export function Viewport() {
     hasDraggedRef.current = false
 
     // 1. Check gizmo handles of the selected entity first
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    const canvasX = e.clientX - rect.left   // canvas-relative coords for handle hit test
+    const canvasY = e.clientY - rect.top
     const selectedId = editorStore.selectedEntityId
     if (selectedId !== null) {
       const components = world.getComponents(selectedId)
@@ -259,7 +263,7 @@ export function Viewport() {
         const screenOrigins = getComponentScreenOrigins(comp, i, sorted, entityScreenOrigin, zoom, panX, panY)
         const handles = comp.getGizmoHandles(screenOrigins, zoom)
         for (const handle of handles) {
-          if (Math.hypot(e.clientX - handle.x, e.clientY - handle.y) < 10) {
+          if (Math.hypot(canvasX - handle.x, canvasY - handle.y) < 10) {
             comp.onGizmoHandleDragStart?.(handle.id)
             gizmoHandleDragRef.current = { component: comp, handleId: handle.id, startScreenX: e.clientX, startScreenY: e.clientY }
             setCursor(handle.cursor ?? 'crosshair')
