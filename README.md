@@ -2,6 +2,8 @@
 
 A procedural / parametric graphics editor built on an Entity-Component-System (ECS) architecture.
 
+![tual screenshot](docs/tual_1.png)
+
 Each shape in the scene is an **entity**. Its visual properties — geometry, transformations, cloning patterns, styling — are defined by **components** that are stacked and processed in a deterministic pipeline. The result is a non-destructive, composable design tool where every visual is a description of _how_ to produce it, not just _what_ it looks like.
 
 ## Design philosophy
