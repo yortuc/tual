@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
+import { sceneStore } from '../editor/SceneStore'
 import { Component } from '../ecs/Component'
 import { Prop } from '../props/Prop'
 import { FillComponent } from '../components/styles/FillComponent'
@@ -37,7 +38,7 @@ function PropRow({ prop }: { prop: Prop<unknown> }) {
   )
 }
 
-function ComponentSection({ component, entityId }: { component: Component; entityId: number }) {
+function ComponentSection({ component, onRemove }: { component: Component; onRemove: () => void }) {
   const [collapsed, setCollapsed] = useState(false)
   const props = component.getProps()
 
@@ -68,7 +69,7 @@ function ComponentSection({ component, entityId }: { component: Component; entit
           {component.label}
         </span>
         <button
-          onClick={e => { e.stopPropagation(); world.removeComponent(entityId, component) }}
+          onClick={e => { e.stopPropagation(); onRemove() }}
           style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}
         >
           ×
@@ -86,6 +87,7 @@ function ComponentSection({ component, entityId }: { component: Component; entit
 export function Inspector() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [components, setComponents] = useState<Component[]>([])
+  const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export function Inspector() {
       const id = editorStore.selectedEntityId
       setSelectedId(id)
       setComponents(id !== null ? [...world.getComponents(id)] : [])
+      setSceneComponents([...sceneStore.getComponents()])
     }
     const u1 = eventBus.on('editor:selection-changed', refresh)
     const u2 = eventBus.on('world:changed', refresh)
@@ -101,8 +104,15 @@ export function Inspector() {
 
   if (selectedId === null) {
     return (
-      <div style={{ padding: 16, color: '#444', fontSize: 12 }}>
-        Select an entity to inspect.
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ padding: '7px 12px', borderBottom: '1px solid #2e2e2e', fontSize: 13, color: '#ccc', fontWeight: 600 }}>
+          Scene
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+          {sceneComponents.map((comp, i) => (
+            <ComponentSection key={i} component={comp} onRemove={() => sceneStore.removeComponent(comp)} />
+          ))}
+        </div>
       </div>
     )
   }
@@ -116,7 +126,7 @@ export function Inspector() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
         {components.map((comp, i) => (
-          <ComponentSection key={i} component={comp} entityId={selectedId} />
+          <ComponentSection key={i} component={comp} onRemove={() => world.removeComponent(selectedId, comp)} />
         ))}
 
         <div style={{ position: 'relative', marginTop: 8 }}>

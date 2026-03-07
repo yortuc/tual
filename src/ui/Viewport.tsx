@@ -3,6 +3,7 @@ import { Renderer } from '../renderer/Renderer'
 import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
+import { sceneStore } from '../editor/SceneStore'
 import { PipelineStage } from '../ecs/Component'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import type { DrawItem } from '../renderer/DrawItem'
@@ -27,7 +28,7 @@ export function Viewport() {
     const renderer = rendererRef.current
     if (!renderer) return
 
-    renderer.clear()
+    renderer.clear(sceneStore.getBackground())
 
     const { zoom, panX, panY } = viewRef.current
     const ctx = renderer.getContext()
