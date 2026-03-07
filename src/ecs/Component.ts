@@ -25,6 +25,13 @@ export interface GizmoContext {
   zoom: number                                 // convert world sizes → screen: size * zoom
 }
 
+export interface GizmoHandle {
+  id: string
+  x: number    // screen space
+  y: number
+  cursor?: string
+}
+
 export abstract class Component {
   abstract readonly stage: PipelineStage
   abstract readonly label: string
@@ -40,6 +47,11 @@ export abstract class Component {
 
   // Optional: draw a canvas overlay explaining this component's transformation
   renderGizmo?(gctx: GizmoContext): void
+
+  // Optional: interactive gizmo handles for direct canvas editing
+  getGizmoHandles?(screenOrigins: { x: number; y: number }[], zoom: number): GizmoHandle[]
+  onGizmoHandleDragStart?(handleId: string): void
+  onGizmoHandleDrag?(handleId: string, dx: number, dy: number, zoom: number): void
 
   getProps(): Array<[string, Prop<unknown>]> {
     return Object.entries(this).filter(

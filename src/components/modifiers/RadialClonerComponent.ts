@@ -1,6 +1,7 @@
-import { Component, PipelineStage, type GizmoContext } from '../../ecs/Component'
+import { Component, PipelineStage, type GizmoContext, type GizmoHandle } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
 import { NumberProp } from '../../props/NumberProp'
+import { eventBus } from '../../ecs/EventBus'
 
 export class RadialClonerComponent extends Component {
   readonly stage = PipelineStage.Modifier
@@ -8,6 +9,8 @@ export class RadialClonerComponent extends Component {
 
   count  = new NumberProp('Count',  { default: 6,   min: 1, max: 200 })
   radius = new NumberProp('Radius', { default: 150, min: 0, max: 1000 })
+
+  private _dragStartRadius = 0
 
   renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
     const n = Math.round(this.count.value)
@@ -49,9 +52,33 @@ export class RadialClonerComponent extends Component {
         ctx.arc(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 3.5, 0, Math.PI * 2)
         ctx.fill()
       }
+
+      // Radius drag handle — filled square at 3 o'clock on the circle
+      ctx.globalAlpha = 0.9
+      const hs = 6
+      ctx.fillRect(x + r - hs / 2, y - hs / 2, hs, hs)
     }
 
     ctx.restore()
+  }
+
+  getGizmoHandles(screenOrigins: { x: number; y: number }[], zoom: number): GizmoHandle[] {
+    const r = this.radius.value * zoom
+    return screenOrigins.map((o, i) => ({
+      id: `radius-${i}`,
+      x: o.x + r,
+      y: o.y,
+      cursor: 'ew-resize',
+    }))
+  }
+
+  onGizmoHandleDragStart(_handleId: string): void {
+    this._dragStartRadius = this.radius.value
+  }
+
+  onGizmoHandleDrag(_handleId: string, dx: number, _dy: number, zoom: number): void {
+    this.radius.value = Math.max(0, this._dragStartRadius + dx / zoom)
+    eventBus.emit('world:changed')
   }
 
   process(items: DrawItem[]): DrawItem[] {

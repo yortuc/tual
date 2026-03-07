@@ -4,7 +4,7 @@ import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
-import { PipelineStage } from '../ecs/Component'
+import { PipelineStage, type Component } from '../ecs/Component'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import type { DrawItem } from '../renderer/DrawItem'
 
@@ -35,16 +35,48 @@ interface ObjectDragState {
   startPosY: number
 }
 
+interface GizmoHandleDragState {
+  component: Component
+  handleId: string
+  startScreenX: number
+  startScreenY: number
+}
+
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<Renderer | null>(null)
   const viewRef = useRef<ViewState>({ zoom: 1, panX: 0, panY: 0 })
   const dragRef = useRef<DragState | null>(null)
   const objectDragRef = useRef<ObjectDragState | null>(null)
+  const gizmoHandleDragRef = useRef<GizmoHandleDragState | null>(null)
   const mouseDownHitRef = useRef<number | null>(null)
   const hasDraggedRef = useRef(false)
   const [zoomPct, setZoomPct] = useState(100)
   const [cursor, setCursor] = useState('default')
+
+  // Computes the screen-space origins for a component's gizmo (accounts for downstream multipliers)
+  const getComponentScreenOrigins = useCallback((
+    comp: Component,
+    compIndex: number,
+    sorted: Component[],
+    entityScreenOrigin: { x: number; y: number },
+    zoom: number,
+    panX: number,
+    panY: number,
+  ): { x: number; y: number }[] => {
+    if (comp.stage === PipelineStage.Modifier) {
+      const seed: DrawItem = { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, shape: { type: 'rect', width: 0, height: 0 }, style: { opacity: 1 } }
+      let items: DrawItem[] = [seed]
+      for (let j = compIndex + 1; j < sorted.length; j++) {
+        if (sorted[j].process) items = sorted[j].process!(items)
+      }
+      return items.map(item => ({
+        x: item.transform.x * zoom + panX,
+        y: item.transform.y * zoom + panY,
+      }))
+    }
+    return [entityScreenOrigin]
+  }, [])
 
   const draw = useCallback(() => {
     const renderer = rendererRef.current
@@ -86,25 +118,7 @@ export function Viewport() {
       for (let i = 0; i < sorted.length; i++) {
         const comp = sorted[i]
         if (!comp.renderGizmo) continue
-
-        let screenOrigins: { x: number; y: number }[]
-
-        if (comp.stage === PipelineStage.Modifier) {
-          // Run a seed item through all subsequent components to find multiplied positions.
-          // This causes the first cloner's gizmo to appear at each position produced by later cloners.
-          const seed: DrawItem = { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, shape: { type: 'rect', width: 0, height: 0 }, style: { opacity: 1 } }
-          let items: DrawItem[] = [seed]
-          for (let j = i + 1; j < sorted.length; j++) {
-            if (sorted[j].process) items = sorted[j].process!(items)
-          }
-          screenOrigins = items.map(item => ({
-            x: item.transform.x * zoom + panX,
-            y: item.transform.y * zoom + panY,
-          }))
-        } else {
-          screenOrigins = [entityScreenOrigin]
-        }
-
+        const screenOrigins = getComponentScreenOrigins(comp, i, sorted, entityScreenOrigin, zoom, panX, panY)
         comp.renderGizmo({ ctx, origin, screenOrigins, zoom })
       }
     }
@@ -224,14 +238,40 @@ export function Viewport() {
     return { wx: (sx - rect.left - panX) / zoom, wy: (sy - rect.top - panY) / zoom }
   }, [])
 
-  // Mouse down — branch into object drag or canvas pan
+  // Mouse down — branch into gizmo handle drag, object drag, or canvas pan
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
+    const { zoom, panX, panY } = viewRef.current
     const { wx, wy } = screenToWorld(e.clientX, e.clientY)
-    const hit = getHitEntity(wx, wy)
-    mouseDownHitRef.current = hit
     hasDraggedRef.current = false
 
+    // 1. Check gizmo handles of the selected entity first
+    const selectedId = editorStore.selectedEntityId
+    if (selectedId !== null) {
+      const components = world.getComponents(selectedId)
+      const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
+      const origin = transform ? transform.position.value : { x: 0, y: 0 }
+      const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
+      const sorted = [...components].sort((a, b) => a.stage - b.stage)
+      for (let i = 0; i < sorted.length; i++) {
+        const comp = sorted[i]
+        if (!comp.getGizmoHandles) continue
+        const screenOrigins = getComponentScreenOrigins(comp, i, sorted, entityScreenOrigin, zoom, panX, panY)
+        const handles = comp.getGizmoHandles(screenOrigins, zoom)
+        for (const handle of handles) {
+          if (Math.hypot(e.clientX - handle.x, e.clientY - handle.y) < 10) {
+            comp.onGizmoHandleDragStart?.(handle.id)
+            gizmoHandleDragRef.current = { component: comp, handleId: handle.id, startScreenX: e.clientX, startScreenY: e.clientY }
+            setCursor(handle.cursor ?? 'crosshair')
+            return
+          }
+        }
+      }
+    }
+
+    // 2. Entity hit test — select + object drag
+    const hit = getHitEntity(wx, wy)
+    mouseDownHitRef.current = hit
     if (hit !== null) {
       editorStore.select(hit)
       const transform = world.getComponents(hit).find(c => c instanceof TransformComponent) as TransformComponent | undefined
@@ -245,13 +285,22 @@ export function Viewport() {
         startPosY: transform?.position.value.y ?? 0,
       }
     } else {
-      dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+      // 3. Canvas pan
+      dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: panX, startPanY: panY }
     }
     setCursor('grabbing')
   }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      // Gizmo handle drag
+      if (gizmoHandleDragRef.current) {
+        const gh = gizmoHandleDragRef.current
+        const dx = e.clientX - gh.startScreenX
+        const dy = e.clientY - gh.startScreenY
+        gh.component.onGizmoHandleDrag?.(gh.handleId, dx, dy, viewRef.current.zoom)
+        return
+      }
       // Object drag
       if (objectDragRef.current) {
         const od = objectDragRef.current
@@ -277,6 +326,7 @@ export function Viewport() {
       draw()
     }
     const handleMouseUp = () => {
+      gizmoHandleDragRef.current = null
       objectDragRef.current = null
       dragRef.current = null
       setCursor('default')
@@ -287,7 +337,7 @@ export function Viewport() {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [draw, screenToWorld])
+  }, [draw, screenToWorld, getComponentScreenOrigins])
 
   // Touch — object drag or canvas pan (iPad / Pencil)
   useEffect(() => {

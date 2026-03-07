@@ -13,7 +13,14 @@
       "Bash(git commit -m \"$\\(cat <<'EOF'\nInitial implementation of CES Designer\n\nPure ECS architecture with a render pipeline \\(Shape → Modifier → Style → Effect\\).\nEntities are plain IDs; any component combination is allowed.\n\n- ECS core: World, Component base class, EventBus\n- 6 prop types: Number, Color, String, Bool, Enum, Vec2 \\(self-contained with React editors\\)\n- 10 components: Rect/Circle/Text shapes, Transform/Fill/Stroke/Shadow/Opacity styles, Cloner/Mirror modifiers\n- Canvas 2D renderer driven by DrawItem pipeline\n- Unity-style UI: Scene Tree \\(left\\), Viewport \\(center\\), Inspector \\(right\\)\n- Demo scene with radially cloned circles and a rect on startup\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npm install -D vitest 2>&1 | tail -5)",
       "Bash(npm test 2>&1)",
-      "Bash(npx tsc --noEmit 2>&1 && npm test 2>&1 | tail -8)"
+      "Bash(npx tsc --noEmit 2>&1 && npm test 2>&1 | tail -8)",
+      "Bash(npx tsc --noEmit 2>&1 && npm test 2>&1 | tail -6)",
+      "Bash(git remote add origin https://github.com/yortuc/tual.git && git branch -M main && git push -u origin main)",
+      "Bash(git remote set-url origin git@github.com:yortuc/tual.git && git push -u origin main)",
+      "Bash(lsof -i :5173 -i :3000 -i :4173 2>/dev/null | grep LISTEN)",
+      "Bash(git push)",
+      "Bash(npx vitest run --reporter=verbose 2>&1 | tail -20)",
+      "Bash(npx vitest run 2>&1 | tail -8)"
     ]
   }
 }
