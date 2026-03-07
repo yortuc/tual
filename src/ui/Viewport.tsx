@@ -18,11 +18,21 @@ const ZOOM_MIN = 0.05
 const ZOOM_MAX = 10
 const ZOOM_STEP = 1.15
 
+interface DragState {
+  startX: number
+  startY: number
+  startPanX: number
+  startPanY: number
+}
+
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<Renderer | null>(null)
   const viewRef = useRef<ViewState>({ zoom: 1, panX: 0, panY: 0 })
+  const dragRef = useRef<DragState | null>(null)
+  const hasDraggedRef = useRef(false)
   const [zoomPct, setZoomPct] = useState(100)
+  const [cursor, setCursor] = useState('default')
 
   const draw = useCallback(() => {
     const renderer = rendererRef.current
@@ -160,14 +170,82 @@ export function Viewport() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [zoomAt, resetZoom])
 
+  // Mouse drag to pan
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+    hasDraggedRef.current = false
+    setCursor('grabbing')
+  }
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const drag = dragRef.current
+      if (!drag) return
+      const dx = e.clientX - drag.startX
+      const dy = e.clientY - drag.startY
+      if (!hasDraggedRef.current && Math.hypot(dx, dy) > 4) hasDraggedRef.current = true
+      viewRef.current = { ...viewRef.current, panX: drag.startPanX + dx, panY: drag.startPanY + dy }
+      draw()
+    }
+    const handleMouseUp = () => {
+      if (!dragRef.current) return
+      dragRef.current = null
+      setCursor('default')
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [draw])
+
+  // Touch pan + tap (iPad / Pencil)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const t = e.touches[0]
+      dragRef.current = { startX: t.clientX, startY: t.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
+      hasDraggedRef.current = false
+    }
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1 || !dragRef.current) return
+      e.preventDefault()
+      const t = e.touches[0]
+      const dx = t.clientX - dragRef.current.startX
+      const dy = t.clientY - dragRef.current.startY
+      if (!hasDraggedRef.current && Math.hypot(dx, dy) > 4) hasDraggedRef.current = true
+      viewRef.current = { ...viewRef.current, panX: dragRef.current.startPanX + dx, panY: dragRef.current.startPanY + dy }
+      draw()
+    }
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!dragRef.current) return
+      if (!hasDraggedRef.current && e.changedTouches.length > 0) {
+        const t = e.changedTouches[0]
+        hitTest(t.clientX, t.clientY)
+      }
+      dragRef.current = null
+    }
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false })
+    canvas.addEventListener('touchend', handleTouchEnd)
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart)
+      canvas.removeEventListener('touchmove', handleTouchMove)
+      canvas.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [draw, hitTest])
+
   // Hit test — converts screen coords → world coords before testing
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const hitTest = useCallback((sx: number, sy: number) => {
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
     const { zoom, panX, panY } = viewRef.current
-    const wx = (e.clientX - rect.left - panX) / zoom
-    const wy = (e.clientY - rect.top  - panY) / zoom
+    const wx = (sx - rect.left - panX) / zoom
+    const wy = (sy - rect.top  - panY) / zoom
 
     let hit: number | null = null
     for (const id of world.getEntityIds()) {
@@ -184,6 +262,11 @@ export function Viewport() {
       }
     }
     editorStore.select(hit)
+  }, [])
+
+  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (hasDraggedRef.current) return  // was a pan, not a tap
+    hitTest(e.clientX, e.clientY)
   }
 
   return (
@@ -191,7 +274,8 @@ export function Viewport() {
       <canvas
         ref={canvasRef}
         onClick={handleClick}
-        style={{ display: 'block', cursor: 'default' }}
+        onMouseDown={handleMouseDown}
+        style={{ display: 'block', cursor }}
       />
 
       {/* Zoom controls — bottom right, iPad friendly */}
