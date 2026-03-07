@@ -43,12 +43,13 @@ function PropRow({ prop }: { prop: Prop<unknown> }) {
 }
 
 function ComponentSection({
-  component, onRemove, onDragStart, onDragOver, onDrop,
+  component, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop,
 }: {
   component: Component
   onRemove: () => void
   onDragStart?: () => void
-  onDragOver?: (e: React.DragEvent) => void
+  onDragEnter?: () => void
+  onDragEnd?: () => void
   onDrop?: () => void
 }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -58,7 +59,9 @@ function ComponentSection({
     <div
       draggable
       onDragStart={onDragStart}
-      onDragOver={e => { e.preventDefault(); onDragOver?.(e) }}
+      onDragEnter={e => { e.preventDefault(); onDragEnter?.() }}
+      onDragOver={e => e.preventDefault()}
+      onDragEnd={onDragEnd}
       onDrop={e => { e.preventDefault(); onDrop?.() }}
       style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}
     >
@@ -111,6 +114,7 @@ export function Inspector() {
   })
   const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const dragIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -162,19 +166,42 @@ export function Inspector() {
           )
         })()}
         {components.map((comp, i) => (
-          <ComponentSection
-            key={i}
-            component={comp}
-            onRemove={() => world.removeComponent(selectedId, comp)}
-            onDragStart={() => { dragIndexRef.current = i }}
-            onDrop={() => {
-              if (dragIndexRef.current !== null && dragIndexRef.current !== i) {
-                world.reorderComponent(selectedId, dragIndexRef.current, i)
-              }
-              dragIndexRef.current = null
-            }}
-          />
+          <React.Fragment key={i}>
+            {dragOverIndex === i && dragIndexRef.current !== i && dragIndexRef.current !== i - 1 && (
+              <div style={{ height: 3, background: '#60a5fa', borderRadius: 2, margin: '2px 0' }} />
+            )}
+            <ComponentSection
+              component={comp}
+              onRemove={() => world.removeComponent(selectedId, comp)}
+              onDragStart={() => { dragIndexRef.current = i; setDragOverIndex(null) }}
+              onDragEnter={() => setDragOverIndex(i)}
+              onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null) }}
+              onDrop={() => {
+                if (dragIndexRef.current !== null && dragIndexRef.current !== i) {
+                  world.reorderComponent(selectedId, dragIndexRef.current, i)
+                }
+                dragIndexRef.current = null
+                setDragOverIndex(null)
+              }}
+            />
+          </React.Fragment>
         ))}
+        {dragOverIndex === components.length && dragIndexRef.current !== components.length - 1 && (
+          <div style={{ height: 3, background: '#60a5fa', borderRadius: 2, margin: '2px 0' }} />
+        )}
+        <div
+          style={{ height: 16 }}
+          onDragEnter={e => { e.preventDefault(); setDragOverIndex(components.length) }}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => {
+            e.preventDefault()
+            if (dragIndexRef.current !== null && dragIndexRef.current !== components.length - 1) {
+              world.reorderComponent(selectedId, dragIndexRef.current, components.length - 1)
+            }
+            dragIndexRef.current = null
+            setDragOverIndex(null)
+          }}
+        />
 
         <div style={{ position: 'relative', marginTop: 8 }}>
           <button
