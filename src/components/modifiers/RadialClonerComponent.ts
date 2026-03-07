@@ -45,18 +45,25 @@ export class RadialClonerComponent extends Component {
       ctx.fill()
       ctx.globalAlpha = 0.65
 
-      // Dot at each clone position
-      for (let i = 0; i < n; i++) {
+      // Dot at each clone position (skip i=0 — handle is drawn there instead)
+      for (let i = 1; i < n; i++) {
         const angle = (i / n) * Math.PI * 2
         ctx.beginPath()
         ctx.arc(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 3.5, 0, Math.PI * 2)
         ctx.fill()
       }
 
-      // Radius drag handle — filled square at 3 o'clock on the circle
-      ctx.globalAlpha = 0.9
-      const hs = 6
+      // Radius drag handle at i=0 position (3 o'clock) — white fill, colored border
+      ctx.globalAlpha = 1
+      const hs = 10
+      ctx.fillStyle = '#ffffff'
+      ctx.strokeStyle = this.gizmoColor
+      ctx.lineWidth = 2
       ctx.fillRect(x + r - hs / 2, y - hs / 2, hs, hs)
+      ctx.strokeRect(x + r - hs / 2, y - hs / 2, hs, hs)
+      ctx.fillStyle = this.gizmoColor
+      ctx.strokeStyle = this.gizmoColor
+      ctx.lineWidth = 1
     }
 
     ctx.restore()
