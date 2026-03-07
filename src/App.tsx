@@ -1,11 +1,13 @@
 import { SceneTree } from './ui/SceneTree'
 import { Inspector } from './ui/Inspector'
 import { Viewport } from './ui/Viewport'
+import { TopBar } from './ui/TopBar'
 
 export default function App() {
   return (
     <div style={{
       display: 'flex',
+      flexDirection: 'column',
       height: '100vh',
       width: '100vw',
       background: '#111',
@@ -13,6 +15,10 @@ export default function App() {
       fontFamily: 'system-ui, -apple-system, sans-serif',
       overflow: 'hidden',
     }}>
+      <TopBar />
+      {/* Panels row */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
       {/* Left: Scene Tree */}
       <div style={{
         width: 210,
@@ -64,6 +70,8 @@ export default function App() {
         </div>
         <Inspector />
       </div>
+
+      </div> {/* end panels row */}
     </div>
   )
 }

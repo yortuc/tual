@@ -18,13 +18,20 @@ export class Renderer {
     this.ctx.fillRect(0, 0, width, height)
   }
 
-  render(items: DrawItem[]): void {
+  render(items: DrawItem[], viewTransform?: { scale: number }): void {
+    if (viewTransform) {
+      this.ctx.save()
+      this.ctx.scale(viewTransform.scale, viewTransform.scale)
+    }
     for (const item of items) {
       if (item.shape.type === 'text') {
         this.renderText(item)
       } else {
         this.renderShape(item)
       }
+    }
+    if (viewTransform) {
+      this.ctx.restore()
     }
   }
 

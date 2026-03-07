@@ -21,6 +21,13 @@ export class World {
     eventBus.emit('world:changed')
   }
 
+  clear(): void {
+    this.entities.clear()
+    this.entityNames.clear()
+    this.nextId = 1
+    eventBus.emit('world:changed')
+  }
+
   getEntityIds(): number[] {
     return Array.from(this.entities.keys())
   }
