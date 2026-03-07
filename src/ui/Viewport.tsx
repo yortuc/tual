@@ -98,6 +98,18 @@ export function Viewport() {
     }
   }, [])
 
+  // Returns the selected entity's position in screen space, or null if nothing selected
+  const getSelectionScreenPos = useCallback((): { x: number; y: number } | null => {
+    const id = editorStore.selectedEntityId
+    if (id === null) return null
+    const components = world.getComponents(id)
+    const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
+    const wx = transform ? transform.position.value.x : 0
+    const wy = transform ? transform.position.value.y : 0
+    const { zoom, panX, panY } = viewRef.current
+    return { x: wx * zoom + panX, y: wy * zoom + panY }
+  }, [])
+
   // Zoom centered on a canvas point (sx, sy in screen space)
   const zoomAt = useCallback((sx: number, sy: number, factor: number) => {
     const v = viewRef.current
@@ -148,27 +160,30 @@ export function Viewport() {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
       const rect = canvas.getBoundingClientRect()
-      zoomAt(
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-        e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP,
-      )
+      const sel = getSelectionScreenPos()
+      const cx = sel ? sel.x : e.clientX - rect.left
+      const cy = sel ? sel.y : e.clientY - rect.top
+      zoomAt(cx, cy, e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP)
     }
     canvas.addEventListener('wheel', handleWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', handleWheel)
-  }, [zoomAt])
+  }, [zoomAt, getSelectionScreenPos])
 
   // Keyboard shortcuts: Cmd/Ctrl +/-/0
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (!e.metaKey && !e.ctrlKey) return
-      if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomAt(viewRef.current.panX, viewRef.current.panY, ZOOM_STEP) }
-      else if (e.key === '-')             { e.preventDefault(); zoomAt(viewRef.current.panX, viewRef.current.panY, 1 / ZOOM_STEP) }
+      const canvas = canvasRef.current
+      const sel = getSelectionScreenPos()
+      const cx = sel ? sel.x : (canvas ? canvas.width / 2 : 0)
+      const cy = sel ? sel.y : (canvas ? canvas.height / 2 : 0)
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomAt(cx, cy, ZOOM_STEP) }
+      else if (e.key === '-')             { e.preventDefault(); zoomAt(cx, cy, 1 / ZOOM_STEP) }
       else if (e.key === '0')             { e.preventDefault(); resetZoom() }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [zoomAt, resetZoom])
+  }, [zoomAt, resetZoom, getSelectionScreenPos])
 
   // Hit test — converts screen coords → world coords before testing
   const hitTest = useCallback((sx: number, sy: number) => {
