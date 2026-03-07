@@ -1,73 +1,78 @@
-# React + TypeScript + Vite
+# tual
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A procedural / parametric graphics editor built on an Entity-Component-System (ECS) architecture.
 
-Currently, two official plugins are available:
+Each shape in the scene is an **entity**. Its visual properties — geometry, transformations, cloning patterns, styling — are defined by **components** that are stacked and processed in a deterministic pipeline. The result is a non-destructive, composable design tool where every visual is a description of _how_ to produce it, not just _what_ it looks like.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Design philosophy
 
-## React Compiler
+### ECS pipeline
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Components are ordered into four pipeline stages that run sequentially per entity:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+Shape → Modifier → Style → Effect
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **Shape** — generates the initial set of `DrawItem`s (rect, circle, text, …)
+- **Modifier** — transforms or multiplies the item array (cloners, mirrors, …)
+- **Style** — applies visual properties to every item (fill, stroke, opacity, shadow, …)
+- **Effect** — post-processing passes (planned)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+An entity with no Shape component produces no output regardless of what else is attached. Multiple Shape components produce multiple base items. Modifiers downstream multiply all items they receive. Style components apply to every item in the array — a single Fill component colors all clones.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+This staging model means composition is predictable: you can reason about what each component does independently of the others.
+
+### Components are data
+
+Each component owns typed `Prop` instances (`NumberProp`, `ColorProp`, `Vec2Prop`, …). These are the only mutable state. The pipeline is a pure function over component props — running it twice with the same props returns the same result. This makes undo/redo, serialization, and testing straightforward.
+
+### Gizmos and handles
+
+Components can optionally render a canvas overlay (`renderGizmo`) and expose interactive drag handles (`getGizmoHandles`). Gizmos are drawn in screen space after the main scene render, so they remain constant size regardless of zoom. Handles are hit-tested on mousedown before entity selection, so a component can intercept interaction and edit its own props directly — for example, dragging a corner handle on a rect resizes width/height, dragging the radius handle on a radial cloner adjusts its radius.
+
+### Scene vs. entities
+
+The scene background and other global properties live in a `SceneStore` singleton, separate from the entity pipeline. This keeps the pipeline pure and avoids treating global properties as a special-cased entity.
+
+## Components
+
+### Shapes
+| Component | Props |
+|-----------|-------|
+| Rectangle | width, height |
+| Circle | radius |
+| Text | content, font size |
+
+### Modifiers
+| Component | Props |
+|-----------|-------|
+| Radial Cloner | count, radius |
+| Linear Cloner | count, spacing X/Y |
+| Grid Cloner | count, columns, spacing X/Y |
+| Mirror | axis (X/Y), keep original |
+
+### Styles
+| Component | Props |
+|-----------|-------|
+| Fill | color |
+| Stroke | color, width |
+| Opacity | opacity |
+| Shadow | blur, offset X/Y, color |
+| Transform | position (X/Y) |
+
+## Stack
+
+- **TypeScript** — strict, no `any`
+- **React** — UI shell (inspector, scene tree, top bar) — not involved in rendering
+- **Canvas 2D API** — all drawing, gizmos, and hit testing
+- **Vite** + **Vitest** — build and unit/integration tests
+
+## Development
+
+```bash
+npm install
+npm run dev      # dev server
+npm test         # run tests
+npm run build    # production build
 ```
