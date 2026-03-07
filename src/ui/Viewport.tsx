@@ -170,6 +170,32 @@ export function Viewport() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [zoomAt, resetZoom])
 
+  // Hit test — converts screen coords → world coords before testing
+  const hitTest = useCallback((sx: number, sy: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const { zoom, panX, panY } = viewRef.current
+    const wx = (sx - rect.left - panX) / zoom
+    const wy = (sy - rect.top  - panY) / zoom
+
+    let hit: number | null = null
+    for (const id of world.getEntityIds()) {
+      for (const item of world.runPipeline(id)) {
+        const { x, y } = item.transform
+        const s = item.shape
+        if (s.type === 'rect') {
+          if (Math.abs(wx - x) < s.width / 2 && Math.abs(wy - y) < s.height / 2) hit = id
+        } else if (s.type === 'circle') {
+          if (Math.hypot(wx - x, wy - y) < s.radius) hit = id
+        } else if (s.type === 'text') {
+          if (Math.abs(wx - x) < 80 && Math.abs(wy - y) < s.fontSize) hit = id
+        }
+      }
+    }
+    editorStore.select(hit)
+  }, [])
+
   // Mouse drag to pan
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: viewRef.current.panX, startPanY: viewRef.current.panY }
@@ -237,32 +263,6 @@ export function Viewport() {
       canvas.removeEventListener('touchend', handleTouchEnd)
     }
   }, [draw, hitTest])
-
-  // Hit test — converts screen coords → world coords before testing
-  const hitTest = useCallback((sx: number, sy: number) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const { zoom, panX, panY } = viewRef.current
-    const wx = (sx - rect.left - panX) / zoom
-    const wy = (sy - rect.top  - panY) / zoom
-
-    let hit: number | null = null
-    for (const id of world.getEntityIds()) {
-      for (const item of world.runPipeline(id)) {
-        const { x, y } = item.transform
-        const s = item.shape
-        if (s.type === 'rect') {
-          if (Math.abs(wx - x) < s.width / 2 && Math.abs(wy - y) < s.height / 2) hit = id
-        } else if (s.type === 'circle') {
-          if (Math.hypot(wx - x, wy - y) < s.radius) hit = id
-        } else if (s.type === 'text') {
-          if (Math.abs(wx - x) < 80 && Math.abs(wy - y) < s.fontSize) hit = id
-        }
-      }
-    }
-    editorStore.select(hit)
-  }, [])
 
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (hasDraggedRef.current) return  // was a pan, not a tap
