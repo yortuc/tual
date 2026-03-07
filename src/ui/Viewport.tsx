@@ -301,7 +301,7 @@ export function Viewport() {
         borderRadius: 6, overflow: 'hidden',
       }}>
         <button
-          onClick={() => zoomAt(viewRef.current.panX, viewRef.current.panY, 1 / ZOOM_STEP)}
+          onClick={() => { const s = getSelectionScreenPos(); const c = canvasRef.current; const cx = s?.x ?? (c ? c.width/2 : 0); const cy = s?.y ?? (c ? c.height/2 : 0); zoomAt(cx, cy, 1 / ZOOM_STEP) }}
           style={zoomBtnStyle}
         >−</button>
         <button
@@ -309,7 +309,7 @@ export function Viewport() {
           style={{ ...zoomBtnStyle, width: 52, fontSize: 11, letterSpacing: '0.3px' }}
         >{zoomPct}%</button>
         <button
-          onClick={() => zoomAt(viewRef.current.panX, viewRef.current.panY, ZOOM_STEP)}
+          onClick={() => { const s = getSelectionScreenPos(); const c = canvasRef.current; const cx = s?.x ?? (c ? c.width/2 : 0); const cy = s?.y ?? (c ? c.height/2 : 0); zoomAt(cx, cy, ZOOM_STEP) }}
           style={zoomBtnStyle}
         >+</button>
       </div>
