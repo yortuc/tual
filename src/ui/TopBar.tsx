@@ -49,7 +49,7 @@ export function TopBar() {
         flexShrink: 0,
       }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#ddd', letterSpacing: '0.3px' }}>
-          CES Designer
+          tual
         </span>
 
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
