@@ -17,7 +17,7 @@ function Vec2Editor({ prop, onChange }: { prop: Vec2Prop; onChange: (v: Vec2) =>
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {(['x', 'y'] as const).map(axis => (
-        <label key={axis} style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+        <label key={axis} style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
           <span style={{ color: '#666', fontSize: 11, width: 10 }}>{axis.toUpperCase()}</span>
           <input
             type="number"
