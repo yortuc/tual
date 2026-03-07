@@ -4,14 +4,14 @@ import { RectComponent } from '../components/shapes/RectComponent'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import { FillComponent } from '../components/styles/FillComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
-import { ClonerComponent } from '../components/modifiers/ClonerComponent'
+import { RadialClonerComponent } from '../components/modifiers/RadialClonerComponent'
 
 export function initDemo(): void {
   // Entity 1: radially cloned circles
   const e1 = world.createEntity('Radial Circles')
   world.addComponent(e1, new CircleComponent())
 
-  const cloner = new ClonerComponent()
+  const cloner = new RadialClonerComponent()
   cloner.count.value = 8
   cloner.radius.value = 160
   world.addComponent(e1, cloner)

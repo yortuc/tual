@@ -9,16 +9,20 @@ import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
-import { ClonerComponent } from '../components/modifiers/ClonerComponent'
+import { RadialClonerComponent } from '../components/modifiers/RadialClonerComponent'
+import { LinearClonerComponent } from '../components/modifiers/LinearClonerComponent'
+import { GridClonerComponent }   from '../components/modifiers/GridClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
 
 const ADDABLE: { label: string; create: () => Component }[] = [
-  { label: 'Fill',    create: () => new FillComponent() },
-  { label: 'Stroke',  create: () => new StrokeComponent() },
-  { label: 'Shadow',  create: () => new ShadowComponent() },
-  { label: 'Opacity', create: () => new OpacityComponent() },
-  { label: 'Cloner',  create: () => new ClonerComponent() },
-  { label: 'Mirror',  create: () => new MirrorComponent() },
+  { label: 'Fill',          create: () => new FillComponent() },
+  { label: 'Stroke',        create: () => new StrokeComponent() },
+  { label: 'Shadow',        create: () => new ShadowComponent() },
+  { label: 'Opacity',       create: () => new OpacityComponent() },
+  { label: 'Radial Cloner', create: () => new RadialClonerComponent() },
+  { label: 'Linear Cloner', create: () => new LinearClonerComponent() },
+  { label: 'Grid Cloner',   create: () => new GridClonerComponent() },
+  { label: 'Mirror',        create: () => new MirrorComponent() },
 ]
 
 function PropRow({ prop }: { prop: Prop<unknown> }) {

@@ -7,7 +7,8 @@ import { FillComponent } from '../../components/styles/FillComponent'
 import { StrokeComponent } from '../../components/styles/StrokeComponent'
 import { ShadowComponent } from '../../components/styles/ShadowComponent'
 import { OpacityComponent } from '../../components/styles/OpacityComponent'
-import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { RadialClonerComponent } from '../../components/modifiers/RadialClonerComponent'
+import { LinearClonerComponent } from '../../components/modifiers/LinearClonerComponent'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
 
 describe('Pipeline integration', () => {
@@ -40,9 +41,8 @@ describe('Pipeline integration', () => {
     const id = world.createEntity()
     world.addComponent(id, new CircleComponent())
 
-    const cloner = new ClonerComponent()
+    const cloner = new RadialClonerComponent()
     cloner.count.value = 4
-    cloner.mode.value = 'radial'
     cloner.radius.value = 100
     world.addComponent(id, cloner)
 
@@ -62,9 +62,8 @@ describe('Pipeline integration', () => {
     const id = world.createEntity()
     world.addComponent(id, new RectComponent())
 
-    const cloner = new ClonerComponent()
+    const cloner = new RadialClonerComponent()
     cloner.count.value = 6
-    cloner.mode.value = 'radial'
     world.addComponent(id, cloner)
 
     const mirror = new MirrorComponent()
@@ -83,7 +82,7 @@ describe('Pipeline integration', () => {
     const id = world.createEntity()
     world.addComponent(id, new RectComponent())
 
-    const cloner = new ClonerComponent()
+    const cloner = new RadialClonerComponent()
     cloner.count.value = 5
     world.addComponent(id, cloner)
 
@@ -111,9 +110,8 @@ describe('Pipeline integration', () => {
     rect.height.value = 60
     world.addComponent(id, rect)
 
-    const cloner = new ClonerComponent()
+    const cloner = new LinearClonerComponent()
     cloner.count.value = 3
-    cloner.mode.value = 'linear'
     cloner.spacingX.value = 80
     cloner.spacingY.value = 0
     world.addComponent(id, cloner)
@@ -172,7 +170,7 @@ describe('Pipeline integration', () => {
   it('entity with no shape component but modifiers and styles produces no output', () => {
     const id = world.createEntity()
     world.addComponent(id, new FillComponent())
-    world.addComponent(id, new ClonerComponent())
+    world.addComponent(id, new RadialClonerComponent())
     world.addComponent(id, new TransformComponent())
     expect(world.runPipeline(id)).toHaveLength(0)
   })

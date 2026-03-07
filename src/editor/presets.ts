@@ -17,7 +17,7 @@ export const PRESETS: Preset[] = [
           name: 'Spikes',
           components: [
             { type: 'RectComponent',      props: { width: 4, height: 150 } },
-            { type: 'ClonerComponent',    props: { count: 24, mode: 'radial', radius: 0, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 24, radius: 0 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#fbbf24' } },
             { type: 'ShadowComponent',    props: { color: '#fbbf24', offsetX: 0, offsetY: 0, blur: 18 } },
@@ -47,7 +47,7 @@ export const PRESETS: Preset[] = [
           name: 'Outer Petals',
           components: [
             { type: 'CircleComponent',    props: { radius: 20 } },
-            { type: 'ClonerComponent',    props: { count: 8, mode: 'radial', radius: 120, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 8, radius: 120 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#f472b6' } },
             { type: 'ShadowComponent',    props: { color: '#f472b6', offsetX: 0, offsetY: 0, blur: 24 } },
@@ -57,7 +57,7 @@ export const PRESETS: Preset[] = [
           name: 'Inner Ring',
           components: [
             { type: 'CircleComponent',    props: { radius: 12 } },
-            { type: 'ClonerComponent',    props: { count: 16, mode: 'radial', radius: 65, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 16, radius: 65 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#fb923c' } },
             { type: 'ShadowComponent',    props: { color: '#fb923c', offsetX: 0, offsetY: 0, blur: 14 } },
@@ -86,7 +86,7 @@ export const PRESETS: Preset[] = [
           name: 'Outer Electrons',
           components: [
             { type: 'CircleComponent',    props: { radius: 7 } },
-            { type: 'ClonerComponent',    props: { count: 12, mode: 'radial', radius: 210, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 12, radius: 210 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#60a5fa' } },
             { type: 'ShadowComponent',    props: { color: '#60a5fa', offsetX: 0, offsetY: 0, blur: 18 } },
@@ -96,7 +96,7 @@ export const PRESETS: Preset[] = [
           name: 'Inner Electrons',
           components: [
             { type: 'CircleComponent',    props: { radius: 9 } },
-            { type: 'ClonerComponent',    props: { count: 8, mode: 'radial', radius: 120, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 8, radius: 120 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#34d399' } },
             { type: 'ShadowComponent',    props: { color: '#34d399', offsetX: 0, offsetY: 0, blur: 18 } },
@@ -125,7 +125,7 @@ export const PRESETS: Preset[] = [
           name: 'Tiles',
           components: [
             { type: 'RectComponent',      props: { width: 52, height: 52 } },
-            { type: 'ClonerComponent',    props: { count: 35, mode: 'grid', radius: 150, spacingX: 78, spacingY: 78, columns: 7 } },
+            { type: 'GridClonerComponent', props: { count: 35, columns: 7, spacingX: 78, spacingY: 78 } },
             { type: 'TransformComponent', props: { position: { x: 88, y: 66 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#3b82f6' } },
             { type: 'ShadowComponent',    props: { color: '#000000', offsetX: 5, offsetY: 9, blur: 22 } },
@@ -146,8 +146,8 @@ export const PRESETS: Preset[] = [
           name: 'Outer Ring',
           components: [
             { type: 'CircleComponent',    props: { radius: 11 } },
-            { type: 'ClonerComponent',    props: { count: 6, mode: 'radial', radius: 72, spacingX: 80, spacingY: 80, columns: 4 } },
-            { type: 'ClonerComponent',    props: { count: 8, mode: 'radial', radius: 190, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 6, radius: 72 } },
+            { type: 'RadialClonerComponent', props: { count: 8, radius: 190 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#a78bfa' } },
             { type: 'ShadowComponent',    props: { color: '#a78bfa', offsetX: 0, offsetY: 0, blur: 16 } },
@@ -157,8 +157,8 @@ export const PRESETS: Preset[] = [
           name: 'Inner Ring',
           components: [
             { type: 'CircleComponent',    props: { radius: 5 } },
-            { type: 'ClonerComponent',    props: { count: 10, mode: 'radial', radius: 40, spacingX: 80, spacingY: 80, columns: 4 } },
-            { type: 'ClonerComponent',    props: { count: 12, mode: 'radial', radius: 270, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 10, radius: 40 } },
+            { type: 'RadialClonerComponent', props: { count: 12, radius: 270 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#f472b6' } },
             { type: 'ShadowComponent',    props: { color: '#f472b6', offsetX: 0, offsetY: 0, blur: 10 } },
@@ -178,7 +178,7 @@ export const PRESETS: Preset[] = [
           name: 'Strand A',
           components: [
             { type: 'CircleComponent',    props: { radius: 12 } },
-            { type: 'ClonerComponent',    props: { count: 12, mode: 'linear', radius: 150, spacingX: 58, spacingY: 22, columns: 4 } },
+            { type: 'LinearClonerComponent', props: { count: 12, spacingX: 58, spacingY: 22 } },
             { type: 'TransformComponent', props: { position: { x: 100, y: 180 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#f472b6' } },
             { type: 'ShadowComponent',    props: { color: '#f472b6', offsetX: 0, offsetY: 0, blur: 14 } },
@@ -188,7 +188,7 @@ export const PRESETS: Preset[] = [
           name: 'Strand B',
           components: [
             { type: 'CircleComponent',    props: { radius: 12 } },
-            { type: 'ClonerComponent',    props: { count: 12, mode: 'linear', radius: 150, spacingX: 58, spacingY: -22, columns: 4 } },
+            { type: 'LinearClonerComponent', props: { count: 12, spacingX: 58, spacingY: -22 } },
             { type: 'TransformComponent', props: { position: { x: 100, y: 420 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#38bdf8' } },
             { type: 'ShadowComponent',    props: { color: '#38bdf8', offsetX: 0, offsetY: 0, blur: 14 } },
@@ -208,7 +208,7 @@ export const PRESETS: Preset[] = [
           name: 'Long Rays',
           components: [
             { type: 'RectComponent',      props: { width: 3, height: 210 } },
-            { type: 'ClonerComponent',    props: { count: 12, mode: 'radial', radius: 0, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 12, radius: 0 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 0, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#e0f2fe' } },
             { type: 'ShadowComponent',    props: { color: '#e0f2fe', offsetX: 0, offsetY: 0, blur: 18 } },
@@ -219,7 +219,7 @@ export const PRESETS: Preset[] = [
           name: 'Short Rays',
           components: [
             { type: 'RectComponent',      props: { width: 3, height: 110 } },
-            { type: 'ClonerComponent',    props: { count: 12, mode: 'radial', radius: 0, spacingX: 80, spacingY: 80, columns: 4 } },
+            { type: 'RadialClonerComponent', props: { count: 12, radius: 0 } },
             { type: 'TransformComponent', props: { position: { x: 450, y: 300 }, rotation: 15, scale: { x: 1, y: 1 } } },
             { type: 'FillComponent',      props: { color: '#7dd3fc' } },
             { type: 'ShadowComponent',    props: { color: '#7dd3fc', offsetX: 0, offsetY: 0, blur: 12 } },

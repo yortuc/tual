@@ -5,7 +5,7 @@ import { RectComponent } from '../../components/shapes/RectComponent'
 import { CircleComponent } from '../../components/shapes/CircleComponent'
 import { FillComponent } from '../../components/styles/FillComponent'
 import { TransformComponent } from '../../components/styles/TransformComponent'
-import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { RadialClonerComponent } from '../../components/modifiers/RadialClonerComponent'
 
 describe('World', () => {
   let world: World
@@ -121,7 +121,7 @@ describe('World', () => {
 
     it('processes modifier stage between shape and style', () => {
       const id = world.createEntity()
-      const cloner = new ClonerComponent()
+      const cloner = new RadialClonerComponent()
       cloner.count.value = 4
       world.addComponent(id, new RectComponent())
       world.addComponent(id, cloner)

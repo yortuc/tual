@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { RadialClonerComponent } from '../../components/modifiers/RadialClonerComponent'
+import { LinearClonerComponent } from '../../components/modifiers/LinearClonerComponent'
+import { GridClonerComponent }   from '../../components/modifiers/GridClonerComponent'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
 import { PipelineStage } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
@@ -12,81 +14,77 @@ function makeItem(x = 0, y = 0): DrawItem {
   }
 }
 
-describe('ClonerComponent', () => {
+describe('RadialClonerComponent', () => {
   it('is in Modifier stage', () => {
-    expect(new ClonerComponent().stage).toBe(PipelineStage.Modifier)
+    expect(new RadialClonerComponent().stage).toBe(PipelineStage.Modifier)
   })
 
-  describe('radial mode', () => {
-    it('produces count × input items', () => {
-      const cloner = new ClonerComponent()
-      cloner.count.value = 6
-      cloner.mode.value = 'radial'
-      const result = cloner.process!([makeItem()])
-      expect(result).toHaveLength(6)
-    })
-
-    it('distributes items evenly around a circle', () => {
-      const cloner = new ClonerComponent()
-      cloner.count.value = 4
-      cloner.radius.value = 100
-      cloner.mode.value = 'radial'
-      const result = cloner.process!([makeItem()])
-      // 4 items at 0°, 90°, 180°, 270°
-      expect(result[0].transform.x).toBeCloseTo(100)
-      expect(result[0].transform.y).toBeCloseTo(0)
-      expect(result[1].transform.x).toBeCloseTo(0)
-      expect(result[1].transform.y).toBeCloseTo(100)
-      expect(result[2].transform.x).toBeCloseTo(-100)
-      expect(result[2].transform.y).toBeCloseTo(0)
-    })
-
-    it('each clone has a rotation offset matching its angle', () => {
-      const cloner = new ClonerComponent()
-      cloner.count.value = 4
-      cloner.mode.value = 'radial'
-      const result = cloner.process!([makeItem()])
-      expect(result[1].transform.rotation).toBeCloseTo(Math.PI / 2)
-    })
-
-    it('multiplies multiple input items', () => {
-      const cloner = new ClonerComponent()
-      cloner.count.value = 3
-      cloner.mode.value = 'radial'
-      const result = cloner.process!([makeItem(), makeItem()])
-      expect(result).toHaveLength(6) // 3 clones × 2 input items
-    })
+  it('produces count × input items', () => {
+    const cloner = new RadialClonerComponent()
+    cloner.count.value = 6
+    expect(cloner.process!([makeItem()])).toHaveLength(6)
   })
 
-  describe('linear mode', () => {
-    it('spaces items along both axes', () => {
-      const cloner = new ClonerComponent()
-      cloner.count.value = 3
-      cloner.mode.value = 'linear'
-      cloner.spacingX.value = 50
-      cloner.spacingY.value = 0
-      const result = cloner.process!([makeItem()])
-      expect(result[0].transform.x).toBe(0)
-      expect(result[1].transform.x).toBe(50)
-      expect(result[2].transform.x).toBe(100)
-    })
+  it('distributes items evenly around a circle', () => {
+    const cloner = new RadialClonerComponent()
+    cloner.count.value = 4
+    cloner.radius.value = 100
+    const result = cloner.process!([makeItem()])
+    expect(result[0].transform.x).toBeCloseTo(100)
+    expect(result[0].transform.y).toBeCloseTo(0)
+    expect(result[1].transform.x).toBeCloseTo(0)
+    expect(result[1].transform.y).toBeCloseTo(100)
+    expect(result[2].transform.x).toBeCloseTo(-100)
+    expect(result[2].transform.y).toBeCloseTo(0)
   })
 
-  describe('grid mode', () => {
-    it('arranges items in rows and columns', () => {
-      const cloner = new ClonerComponent()
-      cloner.count.value = 6
-      cloner.mode.value = 'grid'
-      cloner.columns.value = 3
-      cloner.spacingX.value = 60
-      cloner.spacingY.value = 60
-      const result = cloner.process!([makeItem()])
-      // Row 0: items 0,1,2  Row 1: items 3,4,5
-      expect(result[0].transform).toMatchObject({ x: 0, y: 0 })
-      expect(result[1].transform).toMatchObject({ x: 60, y: 0 })
-      expect(result[3].transform).toMatchObject({ x: 0, y: 60 })
-      expect(result[5].transform).toMatchObject({ x: 120, y: 60 })
-    })
+  it('each clone has a rotation offset matching its angle', () => {
+    const cloner = new RadialClonerComponent()
+    cloner.count.value = 4
+    const result = cloner.process!([makeItem()])
+    expect(result[1].transform.rotation).toBeCloseTo(Math.PI / 2)
+  })
+
+  it('multiplies multiple input items', () => {
+    const cloner = new RadialClonerComponent()
+    cloner.count.value = 3
+    expect(cloner.process!([makeItem(), makeItem()])).toHaveLength(6)
+  })
+})
+
+describe('LinearClonerComponent', () => {
+  it('is in Modifier stage', () => {
+    expect(new LinearClonerComponent().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('spaces items along both axes', () => {
+    const cloner = new LinearClonerComponent()
+    cloner.count.value = 3
+    cloner.spacingX.value = 50
+    cloner.spacingY.value = 0
+    const result = cloner.process!([makeItem()])
+    expect(result[0].transform.x).toBe(0)
+    expect(result[1].transform.x).toBe(50)
+    expect(result[2].transform.x).toBe(100)
+  })
+})
+
+describe('GridClonerComponent', () => {
+  it('is in Modifier stage', () => {
+    expect(new GridClonerComponent().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('arranges items in rows and columns', () => {
+    const cloner = new GridClonerComponent()
+    cloner.count.value = 6
+    cloner.columns.value = 3
+    cloner.spacingX.value = 60
+    cloner.spacingY.value = 60
+    const result = cloner.process!([makeItem()])
+    expect(result[0].transform).toMatchObject({ x: 0,   y: 0 })
+    expect(result[1].transform).toMatchObject({ x: 60,  y: 0 })
+    expect(result[3].transform).toMatchObject({ x: 0,   y: 60 })
+    expect(result[5].transform).toMatchObject({ x: 120, y: 60 })
   })
 })
 
@@ -102,7 +100,7 @@ describe('MirrorComponent', () => {
     const [result] = mirror.process!([makeItem(100, 50)])
     expect(result.transform.x).toBe(-100)
     expect(result.transform.scaleX).toBe(-1)
-    expect(result.transform.y).toBe(50) // y unchanged
+    expect(result.transform.y).toBe(50)
   })
 
   it('mirrors on Y axis — negates y, flips scaleY', () => {
@@ -112,30 +110,27 @@ describe('MirrorComponent', () => {
     const [result] = mirror.process!([makeItem(100, 50)])
     expect(result.transform.y).toBe(-50)
     expect(result.transform.scaleY).toBe(-1)
-    expect(result.transform.x).toBe(100) // x unchanged
+    expect(result.transform.x).toBe(100)
   })
 
   it('keepOriginal=true doubles the item count', () => {
     const mirror = new MirrorComponent()
     mirror.axis.value = 'X'
     mirror.keepOriginal.value = true
-    const result = mirror.process!([makeItem()])
-    expect(result).toHaveLength(2)
+    expect(mirror.process!([makeItem()])).toHaveLength(2)
   })
 
   it('keepOriginal=false keeps only mirrored items', () => {
     const mirror = new MirrorComponent()
     mirror.axis.value = 'X'
     mirror.keepOriginal.value = false
-    const result = mirror.process!([makeItem()])
-    expect(result).toHaveLength(1)
+    expect(mirror.process!([makeItem()])).toHaveLength(1)
   })
 
   it('Both axis produces two mirrored items per input', () => {
     const mirror = new MirrorComponent()
     mirror.axis.value = 'Both'
     mirror.keepOriginal.value = false
-    const result = mirror.process!([makeItem()])
-    expect(result).toHaveLength(2)
+    expect(mirror.process!([makeItem()])).toHaveLength(2)
   })
 })
