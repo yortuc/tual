@@ -38,22 +38,29 @@ export function Viewport() {
     const allItems = world.getEntityIds().flatMap(id => world.runPipeline(id))
     renderer.render(allItems)
 
-    // Selection pass
+    // Selection pass (inside zoom transform — outlines scale with world)
     const selectedId = editorStore.selectedEntityId
     if (selectedId !== null) {
-      renderer.renderSelectionOutlines(world.runPipeline(selectedId))
+      renderer.renderSelectionOutlines(world.runPipeline(selectedId), zoom)
+    }
 
+    ctx.restore()
+
+    // Gizmos drawn in screen space after restore — constant size regardless of zoom
+    if (selectedId !== null) {
       const components = world.getComponents(selectedId)
       const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
       const origin = transform
         ? { x: transform.position.value.x, y: transform.position.value.y }
         : { x: 0, y: 0 }
+      const screenOrigin = {
+        x: origin.x * zoom + panX,
+        y: origin.y * zoom + panY,
+      }
       for (const comp of components) {
-        comp.renderGizmo?.({ ctx, origin })
+        comp.renderGizmo?.({ ctx, origin, screenOrigin, zoom })
       }
     }
-
-    ctx.restore()
   }, [])
 
   // Zoom centered on a canvas point (sx, sy in screen space)

@@ -20,8 +20,9 @@ export const GIZMO_PALETTE = [
 
 export interface GizmoContext {
   ctx: CanvasRenderingContext2D
-  // World-space origin of the entity (from TransformComponent, or {0,0})
-  origin: { x: number; y: number }
+  origin: { x: number; y: number }        // world space
+  screenOrigin: { x: number; y: number }  // screen space — use this for drawing
+  zoom: number                            // convert world sizes → screen: size * zoom
 }
 
 export abstract class Component {

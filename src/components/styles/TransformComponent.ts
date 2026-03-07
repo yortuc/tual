@@ -11,8 +11,8 @@ export class TransformComponent extends Component {
   rotation = new NumberProp('Rotation', { default: 0, min: -180, max: 180, step: 0.5 })
   scale = new Vec2Prop('Scale', { default: { x: 1, y: 1 } })
 
-  renderGizmo({ ctx, origin }: GizmoContext): void {
-    const { x, y } = origin
+  renderGizmo({ ctx, screenOrigin }: GizmoContext): void {
+    const { x, y } = screenOrigin
     const ARM = 14
     ctx.save()
     ctx.strokeStyle = this.gizmoColor

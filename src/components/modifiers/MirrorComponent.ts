@@ -10,8 +10,8 @@ export class MirrorComponent extends Component {
   axis = new EnumProp('Axis', { default: 'X', options: ['X', 'Y', 'Both'] })
   keepOriginal = new BoolProp('Keep Original', { default: true })
 
-  renderGizmo({ ctx, origin }: GizmoContext): void {
-    const { x, y } = origin
+  renderGizmo({ ctx, screenOrigin }: GizmoContext): void {
+    const { x, y } = screenOrigin
     const REACH = 220
     ctx.save()
     ctx.strokeStyle = this.gizmoColor

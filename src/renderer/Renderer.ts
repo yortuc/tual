@@ -22,7 +22,7 @@ export class Renderer {
     return this.ctx
   }
 
-  renderSelectionOutlines(items: DrawItem[]): void {
+  renderSelectionOutlines(items: DrawItem[], zoom = 1): void {
     const ctx = this.ctx
     for (const item of items) {
       const { transform, shape } = item
@@ -31,8 +31,8 @@ export class Renderer {
       ctx.rotate(transform.rotation)
       ctx.scale(transform.scaleX, transform.scaleY)
       ctx.strokeStyle = '#4a90d9'
-      ctx.lineWidth = 1
-      ctx.setLineDash([4, 3])
+      ctx.lineWidth = 1 / zoom
+      ctx.setLineDash([4 / zoom, 3 / zoom])
       ctx.beginPath()
       if (shape.type === 'rect') {
         ctx.rect(-shape.width / 2, -shape.height / 2, shape.width, shape.height)
