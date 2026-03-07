@@ -11,10 +11,23 @@ export class CircleComponent extends Component {
 
   private _dragStartRadius = 0
 
-  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, hasModifier }: GizmoContext): void {
     const hs = 10
 
     ctx.save()
+
+    // Ghost fill — only when a modifier is consuming this shape
+    if (hasModifier) {
+      ctx.fillStyle = this.gizmoColor
+      ctx.globalAlpha = 0.15
+      for (const { x, y } of screenOrigins) {
+        const r = this.radius.value * zoom
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
     ctx.strokeStyle = this.gizmoColor
     ctx.lineWidth = 1
     ctx.globalAlpha = 0.65

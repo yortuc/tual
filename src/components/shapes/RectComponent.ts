@@ -13,12 +13,22 @@ export class RectComponent extends Component {
   private _dragStartWidth  = 0
   private _dragStartHeight = 0
 
-  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, hasModifier }: GizmoContext): void {
     const w = this.width.value * zoom
     const h = this.height.value * zoom
     const hs = 10
 
     ctx.save()
+
+    // Ghost fill — only when a modifier is consuming this shape
+    if (hasModifier) {
+      ctx.fillStyle = this.gizmoColor
+      ctx.globalAlpha = 0.15
+      for (const { x, y } of screenOrigins) {
+        ctx.fillRect(x - w / 2, y - h / 2, w, h)
+      }
+    }
+
     ctx.strokeStyle = this.gizmoColor
     ctx.lineWidth = 1
     ctx.globalAlpha = 0.65

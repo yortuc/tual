@@ -3,41 +3,86 @@ import { CircleComponent } from '../components/shapes/CircleComponent'
 import { RectComponent } from '../components/shapes/RectComponent'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import { FillComponent } from '../components/styles/FillComponent'
+import { StrokeComponent } from '../components/styles/StrokeComponent'
+import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
 import { RadialClonerComponent } from '../components/modifiers/RadialClonerComponent'
 
+const CENTER = { x: 450, y: 340 }
+
 export function initDemo(): void {
-  // Entity 1: radially cloned circles
-  const e1 = world.createEntity('Radial Circles')
-  world.addComponent(e1, new CircleComponent())
+  // --- Outer ring: thin elongated rects, 30 clones, purple ---
+  const outer = world.createEntity('Outer Ring')
 
-  const cloner = new RadialClonerComponent()
-  cloner.count.value = 8
-  cloner.radius.value = 160
-  world.addComponent(e1, cloner)
+  const outerRect = new RectComponent()
+  outerRect.width.value = 6
+  outerRect.height.value = 80
+  world.addComponent(outer, outerRect)
 
-  const t1 = new TransformComponent()
-  t1.position.value = { x: 450, y: 320 }
-  world.addComponent(e1, t1)
+  const outerCloner = new RadialClonerComponent()
+  outerCloner.count.value = 30
+  outerCloner.radius.value = 200
+  world.addComponent(outer, outerCloner)
 
-  const f1 = new FillComponent()
-  f1.color.value = '#4a90d9'
-  world.addComponent(e1, f1)
+  const outerTransform = new TransformComponent()
+  outerTransform.position.value = { ...CENTER }
+  world.addComponent(outer, outerTransform)
 
-  const s1 = new ShadowComponent()
-  s1.blur.value = 16
-  s1.offsetY.value = 6
-  world.addComponent(e1, s1)
+  const outerFill = new FillComponent()
+  outerFill.color.value = '#a78bfa'
+  world.addComponent(outer, outerFill)
 
-  // Entity 2: simple rect
-  const e2 = world.createEntity('Rect')
-  world.addComponent(e2, new RectComponent())
+  const outerOpacity = new OpacityComponent()
+  outerOpacity.opacity.value = 0.65
+  world.addComponent(outer, outerOpacity)
 
-  const t2 = new TransformComponent()
-  t2.position.value = { x: 130, y: 200 }
-  world.addComponent(e2, t2)
+  // --- Middle ring: small squares, 16 clones, pink + white stroke ---
+  const middle = world.createEntity('Middle Ring')
 
-  const f2 = new FillComponent()
-  f2.color.value = '#e74c3c'
-  world.addComponent(e2, f2)
+  const middleRect = new RectComponent()
+  middleRect.width.value = 14
+  middleRect.height.value = 14
+  world.addComponent(middle, middleRect)
+
+  const middleCloner = new RadialClonerComponent()
+  middleCloner.count.value = 16
+  middleCloner.radius.value = 115
+  world.addComponent(middle, middleCloner)
+
+  const middleTransform = new TransformComponent()
+  middleTransform.position.value = { ...CENTER }
+  world.addComponent(middle, middleTransform)
+
+  const middleFill = new FillComponent()
+  middleFill.color.value = '#f472b6'
+  world.addComponent(middle, middleFill)
+
+  const middleStroke = new StrokeComponent()
+  middleStroke.color.value = '#ffffff'
+  middleStroke.width.value = 1
+  world.addComponent(middle, middleStroke)
+
+  const middleOpacity = new OpacityComponent()
+  middleOpacity.opacity.value = 0.85
+  world.addComponent(middle, middleOpacity)
+
+  // --- Center jewel: circle, yellow, strong glow ---
+  const center = world.createEntity('Center Jewel')
+
+  const centerCircle = new CircleComponent()
+  centerCircle.radius.value = 28
+  world.addComponent(center, centerCircle)
+
+  const centerTransform = new TransformComponent()
+  centerTransform.position.value = { ...CENTER }
+  world.addComponent(center, centerTransform)
+
+  const centerFill = new FillComponent()
+  centerFill.color.value = '#fbbf24'
+  world.addComponent(center, centerFill)
+
+  const centerShadow = new ShadowComponent()
+  centerShadow.blur.value = 40
+  centerShadow.color.value = '#fbbf24'
+  world.addComponent(center, centerShadow)
 }

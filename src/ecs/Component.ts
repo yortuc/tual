@@ -23,6 +23,7 @@ export interface GizmoContext {
   origin: { x: number; y: number }             // world space entity origin (for reference)
   screenOrigins: { x: number; y: number }[]    // screen space — draw gizmo at each position
   zoom: number                                 // convert world sizes → screen: size * zoom
+  hasModifier: boolean                         // true if entity has any Modifier-stage component
 }
 
 export interface GizmoHandle {
