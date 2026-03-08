@@ -19,7 +19,7 @@ export function HistoryPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid #2a2a2a', height: 180, flexShrink: 0 }}>
       <div style={{
-        padding: '5px 12px',
+        padding: '5px 8px 5px 12px',
         borderBottom: '1px solid #2a2a2a',
         fontSize: 10,
         color: '#555',
@@ -32,9 +32,34 @@ export function HistoryPanel() {
         flexShrink: 0,
       }}>
         History
-        <span style={{ color: '#3a3a3a', fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 10 }}>
-          {historyStore.canUndo() ? '⌘Z · ' : ''}{historyStore.canRedo() ? '⌘⇧Z' : ''}
-        </span>
+        <div style={{ display: 'flex', gap: 2 }}>
+          <button
+            onClick={() => historyStore.undo()}
+            disabled={!historyStore.canUndo()}
+            title="Undo (⌘Z)"
+            style={{
+              background: 'none', border: '1px solid #333', borderRadius: 3,
+              color: historyStore.canUndo() ? '#aaa' : '#3a3a3a',
+              cursor: historyStore.canUndo() ? 'pointer' : 'default',
+              fontSize: 13, width: 26, height: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0,
+            }}
+          >↩</button>
+          <button
+            onClick={() => historyStore.redo()}
+            disabled={!historyStore.canRedo()}
+            title="Redo (⌘⇧Z)"
+            style={{
+              background: 'none', border: '1px solid #333', borderRadius: 3,
+              color: historyStore.canRedo() ? '#aaa' : '#3a3a3a',
+              cursor: historyStore.canRedo() ? 'pointer' : 'default',
+              fontSize: 13, width: 26, height: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0,
+            }}
+          >↪</button>
+        </div>
       </div>
       <div ref={listRef} style={{ flex: 1, overflowY: 'auto' }}>
         {history.length === 0 && (
