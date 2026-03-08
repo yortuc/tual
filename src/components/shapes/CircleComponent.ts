@@ -2,6 +2,8 @@ import { Component, PipelineStage, type GizmoContext, type GizmoHandle } from '.
 import { identityTransform, type DrawItem } from '../../renderer/DrawItem'
 import { NumberProp } from '../../props/NumberProp'
 import { eventBus } from '../../ecs/EventBus'
+import { historyStore } from '../../ecs/HistoryStore'
+import { SetPropCommand } from '../../ecs/Command'
 
 export class CircleComponent extends Component {
   readonly stage = PipelineStage.Shape
@@ -73,6 +75,12 @@ export class CircleComponent extends Component {
   onGizmoHandleDrag(_handleId: string, dx: number, _dy: number, zoom: number): void {
     this.radius.value = Math.max(1, this._dragStartRadius + dx / zoom)
     eventBus.emit('world:changed')
+  }
+
+  onGizmoHandleDragEnd(_handleId: string): void {
+    if (this.radius.value !== this._dragStartRadius) {
+      historyStore.record(new SetPropCommand(this.radius, this._dragStartRadius, this.radius.value, 'Resize Circle'))
+    }
   }
 
   generate(): DrawItem[] {

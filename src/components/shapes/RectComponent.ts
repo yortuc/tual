@@ -2,6 +2,9 @@ import { Component, PipelineStage, type GizmoContext, type GizmoHandle } from '.
 import { identityTransform, type DrawItem } from '../../renderer/DrawItem'
 import { NumberProp } from '../../props/NumberProp'
 import { eventBus } from '../../ecs/EventBus'
+import { historyStore } from '../../ecs/HistoryStore'
+import { SetPropCommand, CompoundCommand } from '../../ecs/Command'
+import type { Command } from '../../ecs/Command'
 
 export class RectComponent extends Component {
   readonly stage = PipelineStage.Shape
@@ -102,6 +105,16 @@ export class RectComponent extends Component {
     }
 
     eventBus.emit('world:changed')
+  }
+
+  onGizmoHandleDragEnd(_handleId: string): void {
+    const cmds: Command[] = []
+    if (this.width.value !== this._dragStartWidth)
+      cmds.push(new SetPropCommand(this.width, this._dragStartWidth, this.width.value, 'Resize Width'))
+    if (this.height.value !== this._dragStartHeight)
+      cmds.push(new SetPropCommand(this.height, this._dragStartHeight, this.height.value, 'Resize Height'))
+    if (cmds.length > 0)
+      historyStore.record(new CompoundCommand('Resize Rectangle', cmds))
   }
 
   generate(): DrawItem[] {

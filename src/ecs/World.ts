@@ -62,6 +62,14 @@ export class World {
     return this.entities.get(entityId) ?? []
   }
 
+  /** Inserts a component at a specific index without reassigning gizmoColor (used for undo). */
+  restoreComponent(entityId: number, component: Component, index: number): void {
+    const components = this.entities.get(entityId)
+    if (!components) return
+    components.splice(index, 0, component)
+    eventBus.emit('world:changed')
+  }
+
   reorderComponent(entityId: number, fromIndex: number, toIndex: number): void {
     const components = this.entities.get(entityId)
     if (!components) return

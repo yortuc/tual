@@ -20,12 +20,18 @@ export class NumberProp extends Prop<number> {
     this.step = options.step ?? 1
   }
 
-  renderEditor(onChange: (v: number) => void): React.ReactElement {
-    return <NumberEditor prop={this} onChange={onChange} />
+  renderEditor(onChange: (v: number) => void, onCommit?: (v: number) => void): React.ReactElement {
+    return <NumberEditor prop={this} onChange={onChange} onCommit={onCommit} />
   }
 }
 
-function NumberEditor({ prop, onChange }: { prop: NumberProp; onChange: (v: number) => void }) {
+function NumberEditor({
+  prop, onChange, onCommit,
+}: {
+  prop: NumberProp
+  onChange: (v: number) => void
+  onCommit?: (v: number) => void
+}) {
   const hasRange = Number.isFinite(prop.min) && Number.isFinite(prop.max)
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -37,6 +43,7 @@ function NumberEditor({ prop, onChange }: { prop: NumberProp; onChange: (v: numb
           step={prop.step}
           value={prop.value}
           onChange={e => onChange(Number(e.target.value))}
+          onMouseUp={e => onCommit?.(Number((e.target as HTMLInputElement).value))}
           style={{ flex: 1, accentColor: '#4a90d9' }}
         />
       )}
@@ -47,6 +54,7 @@ function NumberEditor({ prop, onChange }: { prop: NumberProp; onChange: (v: numb
         min={Number.isFinite(prop.min) ? prop.min : undefined}
         max={Number.isFinite(prop.max) ? prop.max : undefined}
         onChange={e => onChange(Number(e.target.value))}
+        onBlur={e => onCommit?.(Number(e.target.value))}
         style={{
           width: hasRange ? 56 : '100%',
           background: '#2a2a2a',

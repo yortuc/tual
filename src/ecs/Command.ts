@@ -1,0 +1,71 @@
+import { eventBus } from './EventBus'
+import { world } from './World'
+import type { Component } from './Component'
+import type { Prop } from '../props/Prop'
+
+export interface Command {
+  readonly label: string
+  execute(): void
+  undo(): void
+}
+
+// ---- Prop value change ----
+
+export class SetPropCommand<T = unknown>  {
+  constructor(
+    private prop: Prop<T>,
+    private prev: T,
+    private next: T,
+    readonly label: string,
+  ) {}
+
+  execute(): void { this.prop.value = this.next; eventBus.emit('world:changed') }
+  undo():    void { this.prop.value = this.prev; eventBus.emit('world:changed') }
+}
+
+// ---- Multiple commands as one ----
+
+export class CompoundCommand  {
+  constructor(readonly label: string, private commands: Command[]) {}
+  execute(): void { this.commands.forEach(c => c.execute()) }
+  undo():    void { [...this.commands].reverse().forEach(c => c.undo()) }
+}
+
+// ---- Component lifecycle ----
+
+export class AddComponentCommand  {
+  readonly label: string
+  constructor(private entityId: number, private component: Component) {
+    this.label = `Add ${component.label}`
+  }
+  execute(): void { world.addComponent(this.entityId, this.component) }
+  undo():    void { world.removeComponent(this.entityId, this.component) }
+}
+
+export class RemoveComponentCommand  {
+  readonly label: string
+  private index = -1
+  private savedColor = ''
+
+  constructor(private entityId: number, private component: Component) {
+    this.label = `Remove ${component.label}`
+  }
+
+  execute(): void {
+    this.index = world.getComponents(this.entityId).indexOf(this.component)
+    this.savedColor = this.component.gizmoColor
+    world.removeComponent(this.entityId, this.component)
+  }
+
+  undo(): void {
+    this.component.gizmoColor = this.savedColor
+    world.restoreComponent(this.entityId, this.component, this.index)
+  }
+}
+
+export class ReorderComponentCommand  {
+  readonly label = 'Reorder Components'
+  constructor(private entityId: number, private from: number, private to: number) {}
+  execute(): void { world.reorderComponent(this.entityId, this.from, this.to) }
+  undo():    void { world.reorderComponent(this.entityId, this.to, this.from) }
+}

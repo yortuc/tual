@@ -6,6 +6,8 @@ import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
 import { PipelineStage, type Component } from '../ecs/Component'
 import { TransformComponent } from '../components/styles/TransformComponent'
+import { historyStore } from '../ecs/HistoryStore'
+import { SetPropCommand } from '../ecs/Command'
 import type { DrawItem } from '../renderer/DrawItem'
 
 interface ViewState {
@@ -328,6 +330,21 @@ export function Viewport() {
       draw()
     }
     const handleMouseUp = () => {
+      if (gizmoHandleDragRef.current) {
+        const gh = gizmoHandleDragRef.current
+        gh.component.onGizmoHandleDragEnd?.(gh.handleId)
+      }
+      if (objectDragRef.current && hasDraggedRef.current) {
+        const od = objectDragRef.current
+        const transform = world.getComponents(od.entityId).find(c => c instanceof TransformComponent) as TransformComponent | undefined
+        if (transform) {
+          const prev = { x: od.startPosX, y: od.startPosY }
+          const next = transform.position.value
+          if (prev.x !== next.x || prev.y !== next.y) {
+            historyStore.record(new SetPropCommand(transform.position, prev, next, 'Move'))
+          }
+        }
+      }
       gizmoHandleDragRef.current = null
       objectDragRef.current = null
       dragRef.current = null

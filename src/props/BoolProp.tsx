@@ -6,12 +6,12 @@ export class BoolProp extends Prop<boolean> {
     super(label, options)
   }
 
-  renderEditor(onChange: (v: boolean) => void): React.ReactElement {
+  renderEditor(onChange: (v: boolean) => void, onCommit?: (v: boolean) => void): React.ReactElement {
     return (
       <input
         type="checkbox"
         checked={this.value}
-        onChange={e => onChange(e.target.checked)}
+        onChange={e => { onChange(e.target.checked); onCommit?.(e.target.checked) }}
         style={{ accentColor: '#4a90d9', width: 14, height: 14 }}
       />
     )

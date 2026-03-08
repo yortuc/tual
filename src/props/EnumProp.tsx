@@ -14,11 +14,11 @@ export class EnumProp extends Prop<string> {
     this.options = opts.options
   }
 
-  renderEditor(onChange: (v: string) => void): React.ReactElement {
+  renderEditor(onChange: (v: string) => void, onCommit?: (v: string) => void): React.ReactElement {
     return (
       <select
         value={this.value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => { onChange(e.target.value); onCommit?.(e.target.value) }}
         style={{
           width: '100%',
           background: '#2a2a2a',

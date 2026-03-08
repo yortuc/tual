@@ -8,12 +8,12 @@ export class Vec2Prop extends Prop<Vec2> {
     super(label, options)
   }
 
-  renderEditor(onChange: (v: Vec2) => void): React.ReactElement {
-    return <Vec2Editor prop={this} onChange={onChange} />
+  renderEditor(onChange: (v: Vec2) => void, onCommit?: (v: Vec2) => void): React.ReactElement {
+    return <Vec2Editor prop={this} onChange={onChange} onCommit={onCommit} />
   }
 }
 
-function Vec2Editor({ prop, onChange }: { prop: Vec2Prop; onChange: (v: Vec2) => void }) {
+function Vec2Editor({ prop, onChange, onCommit }: { prop: Vec2Prop; onChange: (v: Vec2) => void; onCommit?: (v: Vec2) => void }) {
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {(['x', 'y'] as const).map(axis => (
@@ -23,6 +23,7 @@ function Vec2Editor({ prop, onChange }: { prop: Vec2Prop; onChange: (v: Vec2) =>
             type="number"
             value={prop.value[axis]}
             onChange={e => onChange({ ...prop.value, [axis]: Number(e.target.value) })}
+            onBlur={e => onCommit?.({ ...prop.value, [axis]: Number(e.target.value) })}
             style={{
               flex: 1,
               background: '#2a2a2a',

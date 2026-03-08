@@ -53,6 +53,7 @@ export abstract class Component {
   getGizmoHandles?(screenOrigins: { x: number; y: number }[], zoom: number): GizmoHandle[]
   onGizmoHandleDragStart?(handleId: string): void
   onGizmoHandleDrag?(handleId: string, dx: number, dy: number, zoom: number): void
+  onGizmoHandleDragEnd?(handleId: string): void
 
   getProps(): Array<[string, Prop<unknown>]> {
     return Object.entries(this).filter(

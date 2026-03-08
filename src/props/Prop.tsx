@@ -9,11 +9,14 @@ export abstract class Prop<T> {
     this.value = options.default
   }
 
-  abstract renderEditor(onChange: (v: T) => void): React.ReactElement
+  abstract renderEditor(onChange: (v: T) => void, onCommit?: (v: T) => void): React.ReactElement
 
   // Type-erased version used by the Inspector
-  renderEditorUnsafe(onChange: (v: unknown) => void): React.ReactElement {
-    return this.renderEditor(onChange as (v: T) => void)
+  renderEditorUnsafe(onChange: (v: unknown) => void, onCommit?: (v: unknown) => void): React.ReactElement {
+    return this.renderEditor(
+      onChange as (v: T) => void,
+      onCommit as ((v: T) => void) | undefined,
+    )
   }
 
   serialize(): T {

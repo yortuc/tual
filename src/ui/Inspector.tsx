@@ -5,6 +5,8 @@ import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
 import { Component, PipelineStage } from '../ecs/Component'
 import { Prop } from '../props/Prop'
+import { historyStore } from '../ecs/HistoryStore'
+import { SetPropCommand, AddComponentCommand, RemoveComponentCommand, ReorderComponentCommand } from '../ecs/Command'
 import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
@@ -27,6 +29,7 @@ const ADDABLE: { label: string; create: () => Component }[] = [
 
 function PropRow({ prop }: { prop: Prop<unknown> }) {
   const [, tick] = useState(0)
+  const startValueRef = useRef<unknown>(prop.value)
 
   const onChange = (v: unknown) => {
     prop.value = v
@@ -34,10 +37,19 @@ function PropRow({ prop }: { prop: Prop<unknown> }) {
     tick(n => n + 1)
   }
 
+  const onCommit = (v: unknown) => {
+    if (startValueRef.current !== v) {
+      historyStore.record(new SetPropCommand(prop, startValueRef.current, v, `Change ${prop.label}`))
+    }
+    startValueRef.current = prop.value
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 6, alignItems: 'center', marginBottom: 5 }}>
       <span style={{ color: '#777', fontSize: 11, textAlign: 'right', paddingRight: 4 }}>{prop.label}</span>
-      <div>{prop.renderEditorUnsafe(onChange)}</div>
+      <div onPointerDown={() => { startValueRef.current = prop.value }}>
+        {prop.renderEditorUnsafe(onChange, onCommit)}
+      </div>
     </div>
   )
 }
@@ -172,13 +184,13 @@ export function Inspector() {
             )}
             <ComponentSection
               component={comp}
-              onRemove={() => world.removeComponent(selectedId, comp)}
+              onRemove={() => historyStore.execute(new RemoveComponentCommand(selectedId, comp))}
               onDragStart={() => { dragIndexRef.current = i; setDragOverIndex(null) }}
               onDragEnter={() => setDragOverIndex(i)}
               onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null) }}
               onDrop={() => {
                 if (dragIndexRef.current !== null && dragIndexRef.current !== i) {
-                  world.reorderComponent(selectedId, dragIndexRef.current, i)
+                  historyStore.execute(new ReorderComponentCommand(selectedId, dragIndexRef.current, i))
                 }
                 dragIndexRef.current = null
                 setDragOverIndex(null)
@@ -196,7 +208,7 @@ export function Inspector() {
           onDrop={e => {
             e.preventDefault()
             if (dragIndexRef.current !== null && dragIndexRef.current !== components.length - 1) {
-              world.reorderComponent(selectedId, dragIndexRef.current, components.length - 1)
+              historyStore.execute(new ReorderComponentCommand(selectedId, dragIndexRef.current, components.length - 1))
             }
             dragIndexRef.current = null
             setDragOverIndex(null)
@@ -235,7 +247,7 @@ export function Inspector() {
               {ADDABLE.map(({ label, create }) => (
                 <div
                   key={label}
-                  onClick={() => { world.addComponent(selectedId, create()); setShowAdd(false) }}
+                  onClick={() => { historyStore.execute(new AddComponentCommand(selectedId, create())); setShowAdd(false) }}
                   style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 12, color: '#bbb' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#333')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
