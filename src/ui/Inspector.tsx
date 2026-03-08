@@ -57,15 +57,15 @@ function ComponentSection({
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
       onDragEnter={e => { e.preventDefault(); onDragEnter?.() }}
       onDragOver={e => e.preventDefault()}
-      onDragEnd={onDragEnd}
       onDrop={e => { e.preventDefault(); onDrop?.() }}
       style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}
     >
       <div
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
         onClick={() => setCollapsed(c => !c)}
         style={{
           display: 'flex',
@@ -73,7 +73,7 @@ function ComponentSection({
           alignItems: 'center',
           padding: '5px 10px',
           background: '#222',
-          cursor: 'pointer',
+          cursor: 'grab',
           fontSize: 12,
           fontWeight: 600,
           color: '#ccc',
@@ -81,7 +81,7 @@ function ComponentSection({
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color: '#444', fontSize: 11, cursor: 'grab', marginRight: 2 }}>⠿</span>
+          <span style={{ color: '#444', fontSize: 11, marginRight: 2 }}>⠿</span>
           <span style={{ color: '#555', fontSize: 10 }}>{collapsed ? '▶' : '▼'}</span>
           <span style={{
             width: 8, height: 8, borderRadius: '50%',
