@@ -47,8 +47,8 @@ function NumberEditor({
   const driven = !!prop.channel
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
         {hasRange && (
           <input
             type="range"
@@ -59,7 +59,7 @@ function NumberEditor({
             disabled={driven}
             onChange={e => onChange(Number(e.target.value))}
             onMouseUp={e => onCommit?.(Number((e.target as HTMLInputElement).value))}
-            style={{ flex: 1, accentColor: '#4a90d9', opacity: driven ? 0.3 : 1 }}
+            style={{ flex: 1, minWidth: 0, accentColor: '#4a90d9', opacity: driven ? 0.3 : 1 }}
           />
         )}
         <input

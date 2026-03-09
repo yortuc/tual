@@ -15,7 +15,9 @@ import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
 import { GradientMutator } from '../components/modifiers/GradientMutator'
-import { IndexSignal } from '../components/signals/IndexSignal'
+import { RampSignal } from '../components/signals/RampSignal'
+import { WaveSignal } from '../components/signals/WaveSignal'
+import { NoiseSignal } from '../components/signals/NoiseSignal'
 import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
@@ -27,7 +29,9 @@ const ADDABLE: { label: string; create: () => Component }[] = [
   { label: 'Grid Distributor',   create: () => new GridDistributor() },
   { label: 'Mirror',             create: () => new MirrorComponent() },
   { label: 'Gradient',           create: () => new GradientMutator() },
-  { label: 'Index Signal',       create: () => new IndexSignal() },
+  { label: 'Ramp Signal',        create: () => new RampSignal() },
+  { label: 'Wave Signal',        create: () => new WaveSignal() },
+  { label: 'Noise Signal',       create: () => new NoiseSignal() },
   { label: 'Fill',               create: () => new FillComponent() },
   { label: 'Stroke',             create: () => new StrokeComponent() },
   { label: 'Shadow',             create: () => new ShadowComponent() },
@@ -54,7 +58,7 @@ function PropRow({ prop }: { prop: Prop<unknown> }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 6, alignItems: 'center', marginBottom: 5 }}>
       <span style={{ color: '#777', fontSize: 11, textAlign: 'right', paddingRight: 4 }}>{prop.label}</span>
-      <div onPointerDown={() => { startValueRef.current = prop.value }}>
+      <div onPointerDown={() => { startValueRef.current = prop.value }} style={{ minWidth: 0, overflow: 'hidden' }}>
         {prop.renderEditorUnsafe(onChange, onCommit)}
       </div>
     </div>

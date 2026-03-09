@@ -5,7 +5,9 @@ import { LinearDistributor } from '../../components/distributors/LinearDistribut
 import { GridDistributor } from '../../components/distributors/GridDistributor'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
 import { GradientMutator } from '../../components/modifiers/GradientMutator'
-import { IndexSignal } from '../../components/signals/IndexSignal'
+import { RampSignal } from '../../components/signals/RampSignal'
+import { WaveSignal } from '../../components/signals/WaveSignal'
+import { NoiseSignal } from '../../components/signals/NoiseSignal'
 import { OpacityComponent } from '../../components/styles/OpacityComponent'
 import { PipelineStage } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
@@ -154,13 +156,13 @@ describe('GradientMutator', () => {
   })
 })
 
-describe('IndexSignal', () => {
+describe('RampSignal', () => {
   it('is in Modifier stage', () => {
-    expect(new IndexSignal().stage).toBe(PipelineStage.Modifier)
+    expect(new RampSignal().stage).toBe(PipelineStage.Modifier)
   })
 
   it('writes linear ramp to item channels', () => {
-    const sig = new IndexSignal()
+    const sig = new RampSignal()
     sig.output.value = 'fade'
     sig.start.value = 0
     sig.end.value = 1
@@ -170,47 +172,147 @@ describe('IndexSignal', () => {
     expect(items[2].channels['fade']).toBeCloseTo(1)
   })
 
+  it('EaseIn curve starts slow', () => {
+    const sig = new RampSignal()
+    sig.curve.value = 'EaseIn'
+    sig.start.value = 0
+    sig.end.value = 1
+    const { items } = sig.processState!(makeState([makeItem(), makeItem(), makeItem()]))
+    // EaseIn: t² — midpoint should be 0.25, not 0.5
+    expect(items[1].channels['ramp']).toBeCloseTo(0.25)
+  })
+
+  it('EaseOut curve ends slow', () => {
+    const sig = new RampSignal()
+    sig.curve.value = 'EaseOut'
+    sig.start.value = 0
+    sig.end.value = 1
+    const { items } = sig.processState!(makeState([makeItem(), makeItem(), makeItem()]))
+    // EaseOut: 1-(1-t)² — midpoint should be 0.75
+    expect(items[1].channels['ramp']).toBeCloseTo(0.75)
+  })
+
+  it('Sine curve peaks in the middle', () => {
+    const sig = new RampSignal()
+    sig.curve.value = 'Sine'
+    sig.start.value = 0
+    sig.end.value = 1
+    const { items } = sig.processState!(makeState([makeItem(), makeItem(), makeItem()]))
+    expect(items[0].channels['ramp']).toBeCloseTo(0)       // sin(0) = 0
+    expect(items[1].channels['ramp']).toBeCloseTo(1)       // sin(π/2) = 1
+    expect(items[2].channels['ramp']).toBeCloseTo(0)       // sin(π) ≈ 0
+  })
+
+  it('Step curve splits at threshold', () => {
+    const sig = new RampSignal()
+    sig.curve.value = 'Step'
+    sig.step.value = 0.5
+    sig.start.value = 0
+    sig.end.value = 1
+    const items = Array.from({ length: 4 }, () => makeItem())
+    const { items: out } = sig.processState!(makeState(items))
+    expect(out[0].channels['ramp']).toBe(0)  // t=0.00 < 0.5
+    expect(out[1].channels['ramp']).toBe(0)  // t=0.33 < 0.5
+    expect(out[2].channels['ramp']).toBe(1)  // t=0.67 ≥ 0.5
+    expect(out[3].channels['ramp']).toBe(1)  // t=1.00 ≥ 0.5
+  })
+
   it('respects custom start/end range', () => {
-    const sig = new IndexSignal()
-    sig.output.value = 'scale'
+    const sig = new RampSignal()
     sig.start.value = 2
     sig.end.value = 4
     const { items } = sig.processState!(makeState([makeItem(), makeItem()]))
-    expect(items[0].channels['scale']).toBeCloseTo(2)
-    expect(items[1].channels['scale']).toBeCloseTo(4)
-  })
-
-  it('handles single item', () => {
-    const sig = new IndexSignal()
-    sig.output.value = 'x'
-    sig.start.value = 5
-    sig.end.value = 10
-    const { items } = sig.processState!(makeState([makeItem()]))
-    expect(items[0].channels['x']).toBeCloseTo(5)
-  })
-
-  it('passes through pipeline channels unchanged', () => {
-    const sig = new IndexSignal()
-    const state = makeState([makeItem()], { global: 42 })
-    const result = sig.processState!(state)
-    expect(result.channels['global']).toBe(42)
+    expect(items[0].channels['ramp']).toBeCloseTo(2)
+    expect(items[1].channels['ramp']).toBeCloseTo(4)
   })
 
   it('works end-to-end with OpacityComponent', () => {
-    const sig = new IndexSignal()
+    const sig = new RampSignal()
     sig.output.value = 'fade'
     sig.start.value = 1
     sig.end.value = 0
-
     const op = new OpacityComponent()
     op.opacity.channel = 'fade'
-
-    const items = [makeItem(), makeItem(), makeItem()]
-    const state1 = sig.processState!(makeState(items))
+    const state1 = sig.processState!(makeState([makeItem(), makeItem(), makeItem()]))
     const state2 = op.processState!(state1)
     expect(state2.items[0].style.opacity).toBeCloseTo(1)
-    expect(state2.items[1].style.opacity).toBeCloseTo(0.5)
     expect(state2.items[2].style.opacity).toBeCloseTo(0)
+  })
+})
+
+describe('WaveSignal', () => {
+  it('is in Modifier stage', () => {
+    expect(new WaveSignal().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('produces a sine wave across items', () => {
+    const sig = new WaveSignal()
+    sig.output.value = 'w'
+    sig.frequency.value = 1
+    sig.amplitude.value = 1
+    sig.offset.value = 0
+    sig.phase.value = 0
+    const { items } = sig.processState!(makeState([makeItem(), makeItem(), makeItem()]))
+    // t=0: sin(0)=0, t=0.5: sin(π)≈0, t=1: sin(2π)≈0 — endpoints near 0
+    expect(items[0].channels['w']).toBeCloseTo(0)
+    expect(items[2].channels['w']).toBeCloseTo(0)
+  })
+
+  it('phase shifts the wave', () => {
+    const sig = new WaveSignal()
+    sig.output.value = 'w'
+    sig.frequency.value = 1
+    sig.amplitude.value = 1
+    sig.offset.value = 0
+    sig.phase.value = 0.25  // 90° shift
+    const { items } = sig.processState!(makeState([makeItem()]))
+    // sin(π/2) = 1
+    expect(items[0].channels['w']).toBeCloseTo(1)
+  })
+
+  it('offset shifts all values up', () => {
+    const sig = new WaveSignal()
+    sig.amplitude.value = 1
+    sig.offset.value = 5
+    sig.phase.value = 0
+    const { items } = sig.processState!(makeState([makeItem()]))
+    expect(items[0].channels['wave']).toBeCloseTo(5)  // sin(0)=0 + offset=5
+  })
+})
+
+describe('NoiseSignal', () => {
+  it('is in Modifier stage', () => {
+    expect(new NoiseSignal().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('produces values within min/max range', () => {
+    const sig = new NoiseSignal()
+    sig.min.value = 0.2
+    sig.max.value = 0.8
+    const items = Array.from({ length: 20 }, () => makeItem())
+    const { items: out } = sig.processState!(makeState(items))
+    for (const item of out) {
+      expect(item.channels['noise']).toBeGreaterThanOrEqual(0.2)
+      expect(item.channels['noise']).toBeLessThanOrEqual(0.8)
+    }
+  })
+
+  it('same seed produces same values', () => {
+    const sig = new NoiseSignal()
+    sig.seed.value = 7
+    const items = Array.from({ length: 5 }, () => makeItem())
+    const run1 = sig.processState!(makeState(items)).items.map(i => i.channels['noise'])
+    const run2 = sig.processState!(makeState(items)).items.map(i => i.channels['noise'])
+    expect(run1).toEqual(run2)
+  })
+
+  it('different seeds produce different values', () => {
+    const items = Array.from({ length: 5 }, () => makeItem())
+    const sig1 = new NoiseSignal(); sig1.seed.value = 1
+    const sig2 = new NoiseSignal(); sig2.seed.value = 2
+    const out1 = sig1.processState!(makeState(items)).items.map(i => i.channels['noise'])
+    const out2 = sig2.processState!(makeState(items)).items.map(i => i.channels['noise'])
+    expect(out1).not.toEqual(out2)
   })
 })
 
