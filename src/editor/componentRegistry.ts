@@ -10,6 +10,7 @@ import { ShadowComponent } from '../components/styles/ShadowComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
+import { GradientMutator } from '../components/modifiers/GradientMutator'
 import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
@@ -26,6 +27,7 @@ export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   OpacityComponent:   () => new OpacityComponent(),
   ClonerComponent:    () => new ClonerComponent(),
   MirrorComponent:    () => new MirrorComponent(),
+  GradientMutator:    () => new GradientMutator(),
   RadialDistributor:  () => new RadialDistributor(),
   LinearDistributor:  () => new LinearDistributor(),
   GridDistributor:    () => new GridDistributor(),

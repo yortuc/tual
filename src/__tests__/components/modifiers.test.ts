@@ -4,6 +4,7 @@ import { RadialDistributor } from '../../components/distributors/RadialDistribut
 import { LinearDistributor } from '../../components/distributors/LinearDistributor'
 import { GridDistributor } from '../../components/distributors/GridDistributor'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
+import { GradientMutator } from '../../components/modifiers/GradientMutator'
 import { PipelineStage } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
 
@@ -93,6 +94,56 @@ describe('GridDistributor', () => {
     expect(result[1].transform).toMatchObject({ x: 60,  y: 0 })
     expect(result[3].transform).toMatchObject({ x: 0,   y: 60 })
     expect(result[5].transform).toMatchObject({ x: 120, y: 60 })
+  })
+})
+
+describe('GradientMutator', () => {
+  it('is in Modifier stage', () => {
+    expect(new GradientMutator().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('applies scale gradient across items', () => {
+    const g = new GradientMutator()
+    g.scaleStart.value = 2
+    g.scaleEnd.value = 1
+    const items = [makeItem(), makeItem(), makeItem()]
+    const result = g.process!(items)
+    expect(result[0].transform.scaleX).toBeCloseTo(2)
+    expect(result[1].transform.scaleX).toBeCloseTo(1.5)
+    expect(result[2].transform.scaleX).toBeCloseTo(1)
+  })
+
+  it('applies opacity gradient across items', () => {
+    const g = new GradientMutator()
+    g.opacityStart.value = 1
+    g.opacityEnd.value = 0
+    const items = [makeItem(), makeItem(), makeItem()]
+    const result = g.process!(items)
+    expect(result[0].style.opacity).toBeCloseTo(1)
+    expect(result[1].style.opacity).toBeCloseTo(0.5)
+    expect(result[2].style.opacity).toBeCloseTo(0)
+  })
+
+  it('accumulates rotation step per item', () => {
+    const g = new GradientMutator()
+    g.rotationStep.value = 45
+    const items = [makeItem(), makeItem(), makeItem()]
+    const result = g.process!(items)
+    expect(result[0].transform.rotation).toBeCloseTo(0)
+    expect(result[1].transform.rotation).toBeCloseTo(Math.PI / 4)
+    expect(result[2].transform.rotation).toBeCloseTo(Math.PI / 2)
+  })
+
+  it('handles single item without division by zero', () => {
+    const g = new GradientMutator()
+    g.scaleStart.value = 2
+    g.scaleEnd.value = 0.5
+    const result = g.process!([makeItem()])
+    expect(result[0].transform.scaleX).toBeCloseTo(2)
+  })
+
+  it('returns empty array for empty input', () => {
+    expect(new GradientMutator().process!([])).toHaveLength(0)
   })
 })
 

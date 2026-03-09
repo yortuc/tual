@@ -14,6 +14,7 @@ import { ShadowComponent } from '../components/styles/ShadowComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
+import { GradientMutator } from '../components/modifiers/GradientMutator'
 import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
@@ -24,6 +25,7 @@ const ADDABLE: { label: string; create: () => Component }[] = [
   { label: 'Linear Distributor', create: () => new LinearDistributor() },
   { label: 'Grid Distributor',   create: () => new GridDistributor() },
   { label: 'Mirror',             create: () => new MirrorComponent() },
+  { label: 'Gradient',           create: () => new GradientMutator() },
   { label: 'Fill',               create: () => new FillComponent() },
   { label: 'Stroke',             create: () => new StrokeComponent() },
   { label: 'Shadow',             create: () => new ShadowComponent() },
