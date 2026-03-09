@@ -1,5 +1,4 @@
-import { Component, PipelineStage } from '../../ecs/Component'
-import type { DrawItem } from '../../renderer/DrawItem'
+import { Component, PipelineStage, type PipelineState } from '../../ecs/Component'
 import { NumberProp } from '../../props/NumberProp'
 
 export class OpacityComponent extends Component {
@@ -8,10 +7,16 @@ export class OpacityComponent extends Component {
 
   opacity = new NumberProp('Opacity', { default: 1, min: 0, max: 1, step: 0.01 })
 
-  process(items: DrawItem[]): DrawItem[] {
-    return items.map(item => ({
-      ...item,
-      style: { ...item.style, opacity: this.opacity.value },
-    }))
+  processState(state: PipelineState): PipelineState {
+    return {
+      ...state,
+      items: state.items.map(item => ({
+        ...item,
+        style: {
+          ...item.style,
+          opacity: this.opacity.resolve({ ...state.channels, ...item.channels }),
+        },
+      })),
+    }
   }
 }

@@ -1,6 +1,11 @@
 import { Prop } from '../props/Prop'
 import type { DrawItem } from '../renderer/DrawItem'
 
+export interface PipelineState {
+  items: DrawItem[]
+  channels: Record<string, number>  // pipeline-level scalar bag
+}
+
 export enum PipelineStage {
   Shape = 0,
   Modifier = 1,
@@ -45,8 +50,11 @@ export abstract class Component {
   // Shape components produce initial DrawItems
   generate?(): DrawItem[]
 
-  // All other components transform the DrawItem array
+  // Components that only need items (legacy/simple path)
   process?(items: DrawItem[]): DrawItem[]
+
+  // Components that read/write the full pipeline state (signals, channel-driven props)
+  processState?(state: PipelineState): PipelineState
 
   // Optional: draw a canvas overlay explaining this component's transformation
   renderGizmo?(gctx: GizmoContext): void

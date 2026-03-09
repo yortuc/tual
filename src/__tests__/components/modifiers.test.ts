@@ -5,6 +5,8 @@ import { LinearDistributor } from '../../components/distributors/LinearDistribut
 import { GridDistributor } from '../../components/distributors/GridDistributor'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
 import { GradientMutator } from '../../components/modifiers/GradientMutator'
+import { IndexSignal } from '../../components/signals/IndexSignal'
+import { OpacityComponent } from '../../components/styles/OpacityComponent'
 import { PipelineStage } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
 
@@ -13,7 +15,12 @@ function makeItem(x = 0, y = 0): DrawItem {
     shape: { type: 'rect', width: 50, height: 50 },
     transform: { x, y, rotation: 0, scaleX: 1, scaleY: 1 },
     style: { opacity: 1 },
+    channels: {},
   }
+}
+
+function makeState(items: DrawItem[], channels: Record<string, number> = {}) {
+  return { items, channels }
 }
 
 describe('ClonerComponent', () => {
@@ -144,6 +151,66 @@ describe('GradientMutator', () => {
 
   it('returns empty array for empty input', () => {
     expect(new GradientMutator().process!([])).toHaveLength(0)
+  })
+})
+
+describe('IndexSignal', () => {
+  it('is in Modifier stage', () => {
+    expect(new IndexSignal().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('writes linear ramp to item channels', () => {
+    const sig = new IndexSignal()
+    sig.output.value = 'fade'
+    sig.start.value = 0
+    sig.end.value = 1
+    const { items } = sig.processState!(makeState([makeItem(), makeItem(), makeItem()]))
+    expect(items[0].channels['fade']).toBeCloseTo(0)
+    expect(items[1].channels['fade']).toBeCloseTo(0.5)
+    expect(items[2].channels['fade']).toBeCloseTo(1)
+  })
+
+  it('respects custom start/end range', () => {
+    const sig = new IndexSignal()
+    sig.output.value = 'scale'
+    sig.start.value = 2
+    sig.end.value = 4
+    const { items } = sig.processState!(makeState([makeItem(), makeItem()]))
+    expect(items[0].channels['scale']).toBeCloseTo(2)
+    expect(items[1].channels['scale']).toBeCloseTo(4)
+  })
+
+  it('handles single item', () => {
+    const sig = new IndexSignal()
+    sig.output.value = 'x'
+    sig.start.value = 5
+    sig.end.value = 10
+    const { items } = sig.processState!(makeState([makeItem()]))
+    expect(items[0].channels['x']).toBeCloseTo(5)
+  })
+
+  it('passes through pipeline channels unchanged', () => {
+    const sig = new IndexSignal()
+    const state = makeState([makeItem()], { global: 42 })
+    const result = sig.processState!(state)
+    expect(result.channels['global']).toBe(42)
+  })
+
+  it('works end-to-end with OpacityComponent', () => {
+    const sig = new IndexSignal()
+    sig.output.value = 'fade'
+    sig.start.value = 1
+    sig.end.value = 0
+
+    const op = new OpacityComponent()
+    op.opacity.channel = 'fade'
+
+    const items = [makeItem(), makeItem(), makeItem()]
+    const state1 = sig.processState!(makeState(items))
+    const state2 = op.processState!(state1)
+    expect(state2.items[0].style.opacity).toBeCloseTo(1)
+    expect(state2.items[1].style.opacity).toBeCloseTo(0.5)
+    expect(state2.items[2].style.opacity).toBeCloseTo(0)
   })
 })
 

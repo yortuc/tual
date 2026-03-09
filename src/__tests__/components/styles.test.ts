@@ -12,8 +12,13 @@ function makeItem(overrides: Partial<DrawItem> = {}): DrawItem {
     shape: { type: 'rect', width: 100, height: 100 },
     transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
     style: { opacity: 1 },
+    channels: {},
     ...overrides,
   }
+}
+
+function makeState(items: DrawItem[], channels: Record<string, number> = {}) {
+  return { items, channels }
 }
 
 describe('FillComponent', () => {
@@ -67,8 +72,24 @@ describe('OpacityComponent', () => {
   it('sets opacity on all items', () => {
     const op = new OpacityComponent()
     op.opacity.value = 0.5
-    const [result] = op.process!([makeItem()])
+    const [result] = op.processState!(makeState([makeItem()])).items
     expect(result.style.opacity).toBe(0.5)
+  })
+
+  it('reads opacity from item channel when bound', () => {
+    const op = new OpacityComponent()
+    op.opacity.channel = 'fade'
+    const item = makeItem({ channels: { fade: 0.25 } })
+    const [result] = op.processState!(makeState([item])).items
+    expect(result.style.opacity).toBe(0.25)
+  })
+
+  it('falls back to literal value when channel is missing', () => {
+    const op = new OpacityComponent()
+    op.opacity.value = 0.7
+    op.opacity.channel = 'missing'
+    const [result] = op.processState!(makeState([makeItem()])).items
+    expect(result.style.opacity).toBe(0.7)
   })
 })
 

@@ -26,4 +26,5 @@ export interface DrawItem {
   shape: ShapeData
   transform: DrawTransform
   style: DrawStyle
+  channels: Record<string, number>  // per-item scalar bag for signal-driven props
 }

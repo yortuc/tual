@@ -1,4 +1,4 @@
-import { Component, PipelineStage, GIZMO_PALETTE } from './Component'
+import { Component, PipelineStage, GIZMO_PALETTE, type PipelineState } from './Component'
 import type { DrawItem } from '../renderer/DrawItem'
 import { eventBus } from './EventBus'
 
@@ -80,18 +80,21 @@ export class World {
 
   runPipeline(entityId: number): DrawItem[] {
     const components = this.entities.get(entityId) ?? []
-    let items: DrawItem[] = []
+    let state: PipelineState = { items: [], channels: {} }
 
     // Run in user-defined order — no stage sorting
     for (const comp of components) {
       if (comp.stage === PipelineStage.Shape && comp.generate) {
-        items = [...items, ...comp.generate()]
+        const generated = comp.generate().map(item => ({ ...item, channels: {} }))
+        state = { ...state, items: [...state.items, ...generated] }
+      } else if (comp.processState) {
+        state = comp.processState(state)
       } else if (comp.process) {
-        items = comp.process(items)
+        state = { ...state, items: comp.process(state.items) }
       }
     }
 
-    return items
+    return state.items
   }
 }
 
