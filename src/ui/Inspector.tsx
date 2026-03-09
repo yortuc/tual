@@ -7,6 +7,7 @@ import { Component, PipelineStage } from '../ecs/Component'
 import { Prop } from '../props/Prop'
 import { historyStore } from '../ecs/HistoryStore'
 import { SetPropCommand, AddComponentCommand, RemoveComponentCommand, ReorderComponentCommand } from '../ecs/Command'
+import { GlowComponent } from '../components/scene/GlowComponent'
 import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
@@ -153,6 +154,18 @@ export function Inspector() {
           {sceneComponents.map((comp, i) => (
             <ComponentSection key={i} component={comp} onRemove={() => sceneStore.removeComponent(comp)} />
           ))}
+          {!sceneComponents.some(c => c instanceof GlowComponent) && (
+            <button
+              onClick={() => sceneStore.addComponent(new GlowComponent())}
+              style={{
+                width: '100%', marginTop: 4, padding: '6px',
+                background: '#1e1e1e', border: '1px dashed #383838',
+                color: '#666', borderRadius: 4, cursor: 'pointer', fontSize: 12,
+              }}
+            >
+              + Add Glow
+            </button>
+          )}
         </div>
       </div>
     )

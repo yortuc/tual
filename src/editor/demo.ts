@@ -1,4 +1,6 @@
 import { world } from '../ecs/World'
+import { sceneStore } from '../editor/SceneStore'
+import { GlowComponent } from '../components/scene/GlowComponent'
 import { CircleComponent } from '../components/shapes/CircleComponent'
 import { RectComponent } from '../components/shapes/RectComponent'
 import { TransformComponent } from '../components/styles/TransformComponent'
@@ -12,6 +14,8 @@ import { RadialDistributor } from '../components/distributors/RadialDistributor'
 const CENTER = { x: 450, y: 340 }
 
 export function initDemo(): void {
+  sceneStore.addComponent(new GlowComponent())
+
   // --- Outer ring: thin elongated rects, 30 clones, purple ---
   const outer = world.createEntity('Outer Ring')
 

@@ -4,6 +4,7 @@ import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
+import { GlowComponent } from '../components/scene/GlowComponent'
 import { PipelineStage, type Component } from '../ecs/Component'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
@@ -115,7 +116,8 @@ export function Viewport() {
     // --- WebGL: render scene ---
     renderer.clear(sceneStore.getBackground())
     const allItems = world.getEntityIds().flatMap(id => world.runPipeline(id))
-    renderer.render(allItems, zoom, panX, panY)
+    const glowComp = sceneStore.getComponents().find(c => c instanceof GlowComponent) as GlowComponent | undefined
+    renderer.render(allItems, zoom, panX, panY, glowComp ? { strength: glowComp.strength.value, radius: glowComp.radius.value } : undefined)
 
     // --- Canvas2D: gizmos, selection outlines, text ---
     const ctx = gizmoCanvas.getContext('2d')!

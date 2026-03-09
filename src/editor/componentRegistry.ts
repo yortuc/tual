@@ -1,4 +1,5 @@
 import type { Component } from '../ecs/Component'
+import { GlowComponent } from '../components/scene/GlowComponent'
 import { RectComponent } from '../components/shapes/RectComponent'
 import { CircleComponent } from '../components/shapes/CircleComponent'
 import { TextComponent } from '../components/shapes/TextComponent'
@@ -14,6 +15,7 @@ import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
 
 export const COMPONENT_REGISTRY: Record<string, () => Component> = {
+  GlowComponent:      () => new GlowComponent(),
   RectComponent:      () => new RectComponent(),
   CircleComponent:    () => new CircleComponent(),
   TextComponent:      () => new TextComponent(),
