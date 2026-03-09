@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
-import { Renderer } from '../renderer/Renderer'
+import { WebGLRenderer } from '../renderer/WebGLRenderer'
 import { world } from '../ecs/World'
 import { eventBus } from '../ecs/EventBus'
 import { editorStore } from '../editor/EditorStore'
@@ -9,6 +9,7 @@ import { TransformComponent } from '../components/styles/TransformComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { historyStore } from '../ecs/HistoryStore'
 import { SetPropCommand } from '../ecs/Command'
+import type { DrawItem } from '../renderer/DrawItem'
 
 interface ViewState {
   zoom: number
@@ -31,9 +32,9 @@ interface ObjectDragState {
   entityId: number
   startScreenX: number
   startScreenY: number
-  startWx: number      // mouse world position at drag start
+  startWx: number
   startWy: number
-  startPosX: number    // entity origin at drag start
+  startPosX: number
   startPosY: number
 }
 
@@ -44,9 +45,57 @@ interface GizmoHandleDragState {
   startScreenY: number
 }
 
+function drawTextItem(ctx: CanvasRenderingContext2D, item: DrawItem): void {
+  if (item.shape.type !== 'text') return
+  const { transform, style, shape } = item
+  ctx.save()
+  ctx.globalAlpha = style.opacity ?? 1
+  if (style.shadow) {
+    ctx.shadowColor = style.shadow.color
+    ctx.shadowOffsetX = style.shadow.x
+    ctx.shadowOffsetY = style.shadow.y
+    ctx.shadowBlur = style.shadow.blur
+  }
+  ctx.translate(transform.x, transform.y)
+  ctx.rotate(transform.rotation)
+  ctx.scale(transform.scaleX, transform.scaleY)
+  ctx.font = `${shape.fontSize}px ${shape.fontFamily}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  if (style.fill) { ctx.fillStyle = style.fill; ctx.fillText(shape.content, 0, 0) }
+  ctx.shadowColor = 'transparent'
+  if (style.stroke) { ctx.strokeStyle = style.stroke.color; ctx.lineWidth = style.stroke.width; ctx.strokeText(shape.content, 0, 0) }
+  ctx.restore()
+}
+
+function drawSelectionOutline(ctx: CanvasRenderingContext2D, item: DrawItem, zoom: number): void {
+  const { transform, shape } = item
+  ctx.save()
+  ctx.translate(transform.x, transform.y)
+  ctx.rotate(transform.rotation)
+  ctx.scale(transform.scaleX, transform.scaleY)
+  ctx.strokeStyle = '#4a90d9'
+  ctx.lineWidth = 1 / zoom
+  ctx.setLineDash([4 / zoom, 3 / zoom])
+  ctx.beginPath()
+  if (shape.type === 'rect') {
+    ctx.rect(-shape.width / 2, -shape.height / 2, shape.width, shape.height)
+  } else if (shape.type === 'circle') {
+    ctx.arc(0, 0, shape.radius, 0, Math.PI * 2)
+  } else if (shape.type === 'text') {
+    ctx.font = `${shape.fontSize}px ${shape.fontFamily}`
+    const w = ctx.measureText(shape.content).width
+    ctx.rect(-w / 2, -shape.fontSize / 2, w, shape.fontSize)
+  }
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.restore()
+}
+
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rendererRef = useRef<Renderer | null>(null)
+  const gizmoCanvasRef = useRef<HTMLCanvasElement>(null)
+  const rendererRef = useRef<WebGLRenderer | null>(null)
   const viewRef = useRef<ViewState>({ zoom: 1, panX: 0, panY: 0 })
   const dragRef = useRef<DragState | null>(null)
   const objectDragRef = useRef<ObjectDragState | null>(null)
@@ -56,58 +105,66 @@ export function Viewport() {
   const [zoomPct, setZoomPct] = useState(100)
   const [cursor, setCursor] = useState('default')
 
-
   const draw = useCallback(() => {
     const renderer = rendererRef.current
-    if (!renderer) return
-
-    renderer.clear(sceneStore.getBackground())
+    const gizmoCanvas = gizmoCanvasRef.current
+    if (!renderer || !gizmoCanvas) return
 
     const { zoom, panX, panY } = viewRef.current
-    const ctx = renderer.getContext()
 
+    // --- WebGL: render scene ---
+    renderer.clear(sceneStore.getBackground())
+    const allItems = world.getEntityIds().flatMap(id => world.runPipeline(id))
+    renderer.render(allItems, zoom, panX, panY)
+
+    // --- Canvas2D: gizmos, selection outlines, text ---
+    const ctx = gizmoCanvas.getContext('2d')!
+    ctx.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height)
+
+    // Text items (world-space)
+    const textItems = allItems.filter((i): i is DrawItem & { shape: { type: 'text' } } => i.shape.type === 'text')
+    if (textItems.length > 0) {
+      ctx.save()
+      ctx.translate(panX, panY)
+      ctx.scale(zoom, zoom)
+      for (const item of textItems) drawTextItem(ctx, item)
+      ctx.restore()
+    }
+
+    const selectedId = editorStore.selectedEntityId
+    if (selectedId === null) return
+
+    // Selection outlines (world-space)
+    const selectedItems = world.runPipeline(selectedId)
     ctx.save()
     ctx.translate(panX, panY)
     ctx.scale(zoom, zoom)
-
-    // Main scene
-    const allItems = world.getEntityIds().flatMap(id => world.runPipeline(id))
-    renderer.render(allItems)
-
-    // Selection pass (inside zoom transform — outlines scale with world)
-    const selectedId = editorStore.selectedEntityId
-    if (selectedId !== null) {
-      renderer.renderSelectionOutlines(world.runPipeline(selectedId), zoom)
-    }
-
+    for (const item of selectedItems) drawSelectionOutline(ctx, item, zoom)
     ctx.restore()
 
-    // Gizmos drawn in screen space after restore — constant size regardless of zoom
-    if (selectedId !== null) {
-      const components = world.getComponents(selectedId)
-      const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
-      const origin = transform
-        ? { x: transform.position.value.x, y: transform.position.value.y }
-        : { x: 0, y: 0 }
-      const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
-      const screenOrigins = [entityScreenOrigin]
-      const hasModifier = components.some(c => c.stage === PipelineStage.Modifier)
+    // Gizmos (screen-space)
+    const components = world.getComponents(selectedId)
+    const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
+    const origin = transform
+      ? { x: transform.position.value.x, y: transform.position.value.y }
+      : { x: 0, y: 0 }
+    const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
+    const screenOrigins = [entityScreenOrigin]
+    const hasModifier = components.some(c => c.stage === PipelineStage.Modifier)
 
-      let itemCount = 0
-      for (const comp of components) {
-        if (comp.renderGizmo) {
-          comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, itemCount })
-        }
-        if (comp.stage === PipelineStage.Shape) {
-          itemCount += 1
-        } else if (comp instanceof ClonerComponent) {
-          itemCount = itemCount * Math.max(1, Math.round(comp.count.value))
-        }
+    let itemCount = 0
+    for (const comp of components) {
+      if (comp.renderGizmo) {
+        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, itemCount })
+      }
+      if (comp.stage === PipelineStage.Shape) {
+        itemCount += 1
+      } else if (comp instanceof ClonerComponent) {
+        itemCount = itemCount * Math.max(1, Math.round(comp.count.value))
       }
     }
   }, [])
 
-  // Returns the selected entity's position in screen space, or null if nothing selected
   const getSelectionScreenPos = useCallback((): { x: number; y: number } | null => {
     const id = editorStore.selectedEntityId
     if (id === null) return null
@@ -119,16 +176,11 @@ export function Viewport() {
     return { x: wx * zoom + panX, y: wy * zoom + panY }
   }, [])
 
-  // Zoom centered on a canvas point (sx, sy in screen space)
   const zoomAt = useCallback((sx: number, sy: number, factor: number) => {
     const v = viewRef.current
     const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v.zoom * factor))
     const zf = newZoom / v.zoom
-    viewRef.current = {
-      zoom: newZoom,
-      panX: sx - (sx - v.panX) * zf,
-      panY: sy - (sy - v.panY) * zf,
-    }
+    viewRef.current = { zoom: newZoom, panX: sx - (sx - v.panX) * zf, panY: sy - (sy - v.panY) * zf }
     setZoomPct(Math.round(newZoom * 100))
     draw()
   }, [draw])
@@ -142,14 +194,19 @@ export function Viewport() {
   // Renderer init + resize observer
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    const gizmoCanvas = gizmoCanvasRef.current
+    if (!canvas || !gizmoCanvas) return
 
-    rendererRef.current = new Renderer(canvas)
+    rendererRef.current = new WebGLRenderer(canvas)
 
     const handleResize = () => {
       const parent = canvas.parentElement
       if (!parent) return
-      rendererRef.current?.resize(parent.clientWidth, parent.clientHeight)
+      const w = parent.clientWidth
+      const h = parent.clientHeight
+      rendererRef.current?.resize(w, h)
+      gizmoCanvas.width = w
+      gizmoCanvas.height = h
       draw()
     }
 
@@ -194,7 +251,6 @@ export function Viewport() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [zoomAt, resetZoom, getSelectionScreenPos])
 
-  // Returns entity id at world position, or null
   const getHitEntity = useCallback((wx: number, wy: number): number | null => {
     let hit: number | null = null
     for (const id of world.getEntityIds()) {
@@ -213,7 +269,6 @@ export function Viewport() {
     return hit
   }, [])
 
-  // Converts screen coords → world coords
   const screenToWorld = useCallback((sx: number, sy: number) => {
     const canvas = canvasRef.current!
     const rect = canvas.getBoundingClientRect()
@@ -221,17 +276,16 @@ export function Viewport() {
     return { wx: (sx - rect.left - panX) / zoom, wy: (sy - rect.top - panY) / zoom }
   }, [])
 
-  // Mouse down — branch into gizmo handle drag, object drag, or canvas pan
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
     const { zoom, panX, panY } = viewRef.current
     const { wx, wy } = screenToWorld(e.clientX, e.clientY)
     hasDraggedRef.current = false
 
-    // 1. Check gizmo handles of the selected entity first
+    // 1. Check gizmo handles of selected entity
     const canvas = canvasRef.current!
     const rect = canvas.getBoundingClientRect()
-    const canvasX = e.clientX - rect.left   // canvas-relative coords for handle hit test
+    const canvasX = e.clientX - rect.left
     const canvasY = e.clientY - rect.top
     const selectedId = editorStore.selectedEntityId
     if (selectedId !== null) {
@@ -254,7 +308,7 @@ export function Viewport() {
       }
     }
 
-    // 2. Entity hit test — select + object drag
+    // 2. Entity hit test
     const hit = getHitEntity(wx, wy)
     mouseDownHitRef.current = hit
     if (hit !== null) {
@@ -262,10 +316,8 @@ export function Viewport() {
       const transform = world.getComponents(hit).find(c => c instanceof TransformComponent) as TransformComponent | undefined
       objectDragRef.current = {
         entityId: hit,
-        startScreenX: e.clientX,
-        startScreenY: e.clientY,
-        startWx: wx,
-        startWy: wy,
+        startScreenX: e.clientX, startScreenY: e.clientY,
+        startWx: wx, startWy: wy,
         startPosX: transform?.position.value.x ?? 0,
         startPosY: transform?.position.value.y ?? 0,
       }
@@ -278,15 +330,11 @@ export function Viewport() {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      // Gizmo handle drag
       if (gizmoHandleDragRef.current) {
         const gh = gizmoHandleDragRef.current
-        const dx = e.clientX - gh.startScreenX
-        const dy = e.clientY - gh.startScreenY
-        gh.component.onGizmoHandleDrag?.(gh.handleId, dx, dy, viewRef.current.zoom)
+        gh.component.onGizmoHandleDrag?.(gh.handleId, e.clientX - gh.startScreenX, e.clientY - gh.startScreenY, viewRef.current.zoom)
         return
       }
-      // Object drag
       if (objectDragRef.current) {
         const od = objectDragRef.current
         if (!hasDraggedRef.current && Math.hypot(e.clientX - od.startScreenX, e.clientY - od.startScreenY) > 4) {
@@ -301,7 +349,6 @@ export function Viewport() {
         }
         return
       }
-      // Canvas pan
       const drag = dragRef.current
       if (!drag) return
       const dx = e.clientX - drag.startX
@@ -312,8 +359,7 @@ export function Viewport() {
     }
     const handleMouseUp = () => {
       if (gizmoHandleDragRef.current) {
-        const gh = gizmoHandleDragRef.current
-        gh.component.onGizmoHandleDragEnd?.(gh.handleId)
+        gizmoHandleDragRef.current.component.onGizmoHandleDragEnd?.(gizmoHandleDragRef.current.handleId)
       }
       if (objectDragRef.current && hasDraggedRef.current) {
         const od = objectDragRef.current
@@ -339,7 +385,7 @@ export function Viewport() {
     }
   }, [draw, screenToWorld])
 
-  // Touch — object drag or canvas pan (iPad / Pencil)
+  // Touch events
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -370,16 +416,11 @@ export function Viewport() {
       const t = e.touches[0]
       if (objectDragRef.current) {
         const od = objectDragRef.current
-        if (!hasDraggedRef.current && Math.hypot(t.clientX - od.startScreenX, t.clientY - od.startScreenY) > 4) {
-          hasDraggedRef.current = true
-        }
+        if (!hasDraggedRef.current && Math.hypot(t.clientX - od.startScreenX, t.clientY - od.startScreenY) > 4) hasDraggedRef.current = true
         if (!hasDraggedRef.current) return
         const { wx, wy } = screenToWorld(t.clientX, t.clientY)
         const transform = world.getComponents(od.entityId).find(c => c instanceof TransformComponent) as TransformComponent | undefined
-        if (transform) {
-          transform.position.value = { x: od.startPosX + (wx - od.startWx), y: od.startPosY + (wy - od.startWy) }
-          eventBus.emit('world:changed')
-        }
+        if (transform) { transform.position.value = { x: od.startPosX + (wx - od.startWx), y: od.startPosY + (wy - od.startWy) }; eventBus.emit('world:changed') }
         return
       }
       if (!dragRef.current) return
@@ -413,14 +454,20 @@ export function Viewport() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* WebGL scene canvas — bottom layer, receives pointer events */}
       <canvas
         ref={canvasRef}
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         style={{ display: 'block', cursor }}
       />
+      {/* Gizmo canvas — Canvas2D overlay, transparent, no pointer events */}
+      <canvas
+        ref={gizmoCanvasRef}
+        style={{ position: 'absolute', inset: 0, display: 'block', pointerEvents: 'none' }}
+      />
 
-      {/* Zoom controls — bottom right, iPad friendly */}
+      {/* Zoom controls */}
       <div style={{
         position: 'absolute', bottom: 14, right: 14,
         display: 'flex', alignItems: 'center', gap: 2,
@@ -431,10 +478,7 @@ export function Viewport() {
           onClick={() => { const s = getSelectionScreenPos(); const c = canvasRef.current; const cx = s?.x ?? (c ? c.width/2 : 0); const cy = s?.y ?? (c ? c.height/2 : 0); zoomAt(cx, cy, 1 / ZOOM_STEP) }}
           style={zoomBtnStyle}
         >−</button>
-        <button
-          onClick={resetZoom}
-          style={{ ...zoomBtnStyle, width: 52, fontSize: 11, letterSpacing: '0.3px' }}
-        >{zoomPct}%</button>
+        <button onClick={resetZoom} style={{ ...zoomBtnStyle, width: 52, fontSize: 11, letterSpacing: '0.3px' }}>{zoomPct}%</button>
         <button
           onClick={() => { const s = getSelectionScreenPos(); const c = canvasRef.current; const cx = s?.x ?? (c ? c.width/2 : 0); const cy = s?.y ?? (c ? c.height/2 : 0); zoomAt(cx, cy, ZOOM_STEP) }}
           style={zoomBtnStyle}
@@ -445,15 +489,6 @@ export function Viewport() {
 }
 
 const zoomBtnStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: '#888',
-  cursor: 'pointer',
-  fontSize: 16,
-  width: 32,
-  height: 30,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 0,
+  background: 'none', border: 'none', color: '#888', cursor: 'pointer',
+  fontSize: 16, width: 32, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
 }
