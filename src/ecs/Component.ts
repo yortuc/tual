@@ -4,6 +4,7 @@ import type { DrawItem } from '../renderer/DrawItem'
 export enum PipelineStage {
   Shape = 0,
   Modifier = 1,
+  Distributor = 1.5,
   Style = 2,
   Effect = 3,
 }
@@ -24,6 +25,7 @@ export interface GizmoContext {
   screenOrigins: { x: number; y: number }[]    // screen space — draw gizmo at each position
   zoom: number                                 // convert world sizes → screen: size * zoom
   hasModifier: boolean                         // true if entity has any Modifier-stage component
+  itemCount: number                            // number of items entering this component
 }
 
 export interface GizmoHandle {

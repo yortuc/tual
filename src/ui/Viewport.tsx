@@ -6,9 +6,9 @@ import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
 import { PipelineStage, type Component } from '../ecs/Component'
 import { TransformComponent } from '../components/styles/TransformComponent'
+import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { historyStore } from '../ecs/HistoryStore'
 import { SetPropCommand } from '../ecs/Command'
-import type { DrawItem } from '../renderer/DrawItem'
 
 interface ViewState {
   zoom: number
@@ -56,29 +56,6 @@ export function Viewport() {
   const [zoomPct, setZoomPct] = useState(100)
   const [cursor, setCursor] = useState('default')
 
-  // Computes the screen-space origins for a component's gizmo (accounts for downstream multipliers)
-  const getComponentScreenOrigins = useCallback((
-    comp: Component,
-    compIndex: number,
-    sorted: Component[],
-    entityScreenOrigin: { x: number; y: number },
-    zoom: number,
-    panX: number,
-    panY: number,
-  ): { x: number; y: number }[] => {
-    if (comp.stage === PipelineStage.Modifier) {
-      const seed: DrawItem = { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, shape: { type: 'rect', width: 0, height: 0 }, style: { opacity: 1 } }
-      let items: DrawItem[] = [seed]
-      for (let j = compIndex + 1; j < sorted.length; j++) {
-        if (sorted[j].process) items = sorted[j].process!(items)
-      }
-      return items.map(item => ({
-        x: item.transform.x * zoom + panX,
-        y: item.transform.y * zoom + panY,
-      }))
-    }
-    return [entityScreenOrigin]
-  }, [])
 
   const draw = useCallback(() => {
     const renderer = rendererRef.current
@@ -113,14 +90,19 @@ export function Viewport() {
         ? { x: transform.position.value.x, y: transform.position.value.y }
         : { x: 0, y: 0 }
       const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
-
+      const screenOrigins = [entityScreenOrigin]
       const hasModifier = components.some(c => c.stage === PipelineStage.Modifier)
 
-      for (let i = 0; i < components.length; i++) {
-        const comp = components[i]
-        if (!comp.renderGizmo) continue
-        const screenOrigins = getComponentScreenOrigins(comp, i, components, entityScreenOrigin, zoom, panX, panY)
-        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier })
+      let itemCount = 0
+      for (const comp of components) {
+        if (comp.renderGizmo) {
+          comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, itemCount })
+        }
+        if (comp.stage === PipelineStage.Shape) {
+          itemCount += 1
+        } else if (comp instanceof ClonerComponent) {
+          itemCount = itemCount * Math.max(1, Math.round(comp.count.value))
+        }
       }
     }
   }, [])
@@ -257,10 +239,9 @@ export function Viewport() {
       const transform = components.find(c => c instanceof TransformComponent) as TransformComponent | undefined
       const origin = transform ? transform.position.value : { x: 0, y: 0 }
       const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
-      for (let i = 0; i < components.length; i++) {
-        const comp = components[i]
+      const screenOrigins = [entityScreenOrigin]
+      for (const comp of components) {
         if (!comp.getGizmoHandles) continue
-        const screenOrigins = getComponentScreenOrigins(comp, i, components, entityScreenOrigin, zoom, panX, panY)
         const handles = comp.getGizmoHandles(screenOrigins, zoom)
         for (const handle of handles) {
           if (Math.hypot(canvasX - handle.x, canvasY - handle.y) < 10) {
@@ -356,7 +337,7 @@ export function Viewport() {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [draw, screenToWorld, getComponentScreenOrigins])
+  }, [draw, screenToWorld])
 
   // Touch — object drag or canvas pan (iPad / Pencil)
   useEffect(() => {

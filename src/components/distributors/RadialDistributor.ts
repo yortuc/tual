@@ -5,17 +5,16 @@ import { eventBus } from '../../ecs/EventBus'
 import { historyStore } from '../../ecs/HistoryStore'
 import { SetPropCommand } from '../../ecs/Command'
 
-export class RadialClonerComponent extends Component {
-  readonly stage = PipelineStage.Modifier
-  readonly label = 'Radial Cloner'
+export class RadialDistributor extends Component {
+  readonly stage = PipelineStage.Distributor
+  readonly label = 'Radial Distributor'
 
-  count  = new NumberProp('Count',  { default: 6,   min: 1, max: 200 })
   radius = new NumberProp('Radius', { default: 150, min: 0, max: 1000 })
 
   private _dragStartRadius = 0
 
-  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
-    const n = Math.round(this.count.value)
+  renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
+    const n = itemCount
     ctx.save()
     ctx.strokeStyle = this.gizmoColor
     ctx.fillStyle = this.gizmoColor
@@ -32,7 +31,7 @@ export class RadialClonerComponent extends Component {
       ctx.stroke()
       ctx.setLineDash([])
 
-      // Direction arrow at angle 0 (first clone position)
+      // Direction arrow at angle 0
       ctx.globalAlpha = 0.9
       ctx.beginPath()
       ctx.moveTo(x, y)
@@ -47,15 +46,17 @@ export class RadialClonerComponent extends Component {
       ctx.fill()
       ctx.globalAlpha = 0.65
 
-      // Dot at each clone position (skip i=0 — handle is drawn there instead)
-      for (let i = 1; i < n; i++) {
-        const angle = (i / n) * Math.PI * 2
-        ctx.beginPath()
-        ctx.arc(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 3.5, 0, Math.PI * 2)
-        ctx.fill()
+      // Dot at each item position (skip i=0 — handle is there)
+      if (n > 0) {
+        for (let i = 1; i < n; i++) {
+          const angle = (i / n) * Math.PI * 2
+          ctx.beginPath()
+          ctx.arc(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 3.5, 0, Math.PI * 2)
+          ctx.fill()
+        }
       }
 
-      // Radius drag handle at i=0 position (3 o'clock) — white fill, colored border
+      // Radius handle at i=0 (3 o'clock)
       ctx.globalAlpha = 1
       const hs = 10
       ctx.fillStyle = '#ffffff'
@@ -63,9 +64,6 @@ export class RadialClonerComponent extends Component {
       ctx.lineWidth = 2
       ctx.fillRect(x + r - hs / 2, y - hs / 2, hs, hs)
       ctx.strokeRect(x + r - hs / 2, y - hs / 2, hs, hs)
-      ctx.fillStyle = this.gizmoColor
-      ctx.strokeStyle = this.gizmoColor
-      ctx.lineWidth = 1
     }
 
     ctx.restore()
@@ -97,24 +95,19 @@ export class RadialClonerComponent extends Component {
   }
 
   process(items: DrawItem[]): DrawItem[] {
-    const result: DrawItem[] = []
-    const n = Math.round(this.count.value)
-    for (let i = 0; i < n; i++) {
+    const n = items.length
+    if (n === 0) return []
+    return items.map((item, i) => {
       const angle = (i / n) * Math.PI * 2
-      const dx = Math.cos(angle) * this.radius.value
-      const dy = Math.sin(angle) * this.radius.value
-      for (const item of items) {
-        result.push({
-          ...item,
-          transform: {
-            ...item.transform,
-            x: item.transform.x + dx,
-            y: item.transform.y + dy,
-            rotation: item.transform.rotation + angle,
-          },
-        })
+      return {
+        ...item,
+        transform: {
+          ...item.transform,
+          x: item.transform.x + Math.cos(angle) * this.radius.value,
+          y: item.transform.y + Math.sin(angle) * this.radius.value,
+          rotation: item.transform.rotation + angle,
+        },
       }
-    }
-    return result
+    })
   }
 }

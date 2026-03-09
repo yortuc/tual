@@ -11,20 +11,22 @@ import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
-import { RadialClonerComponent } from '../components/modifiers/RadialClonerComponent'
-import { LinearClonerComponent } from '../components/modifiers/LinearClonerComponent'
-import { GridClonerComponent }   from '../components/modifiers/GridClonerComponent'
+import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
+import { RadialDistributor } from '../components/distributors/RadialDistributor'
+import { LinearDistributor } from '../components/distributors/LinearDistributor'
+import { GridDistributor } from '../components/distributors/GridDistributor'
 
 const ADDABLE: { label: string; create: () => Component }[] = [
-  { label: 'Fill',          create: () => new FillComponent() },
-  { label: 'Stroke',        create: () => new StrokeComponent() },
-  { label: 'Shadow',        create: () => new ShadowComponent() },
-  { label: 'Opacity',       create: () => new OpacityComponent() },
-  { label: 'Radial Cloner', create: () => new RadialClonerComponent() },
-  { label: 'Linear Cloner', create: () => new LinearClonerComponent() },
-  { label: 'Grid Cloner',   create: () => new GridClonerComponent() },
-  { label: 'Mirror',        create: () => new MirrorComponent() },
+  { label: 'Cloner',             create: () => new ClonerComponent() },
+  { label: 'Radial Distributor', create: () => new RadialDistributor() },
+  { label: 'Linear Distributor', create: () => new LinearDistributor() },
+  { label: 'Grid Distributor',   create: () => new GridDistributor() },
+  { label: 'Mirror',             create: () => new MirrorComponent() },
+  { label: 'Fill',               create: () => new FillComponent() },
+  { label: 'Stroke',             create: () => new StrokeComponent() },
+  { label: 'Shadow',             create: () => new ShadowComponent() },
+  { label: 'Opacity',            create: () => new OpacityComponent() },
 ]
 
 function PropRow({ prop }: { prop: Prop<unknown> }) {
@@ -167,15 +169,29 @@ export function Inspector() {
         {(() => {
           const firstShapeIdx = components.findIndex(c => c.stage === PipelineStage.Shape)
           const hasOrderWarning = firstShapeIdx > 0
-          return hasOrderWarning && (
-            <div style={{
-              marginBottom: 8, padding: '6px 10px',
-              background: '#2a1f00', border: '1px solid #5a3f00',
-              borderRadius: 4, fontSize: 11, color: '#c8922a', lineHeight: 1.5,
-            }}>
-              Shape component should come first in the pipeline — components above it receive no input.
-            </div>
-          )
+          const hasCloner = components.some(c => c instanceof ClonerComponent)
+          const hasDistributor = components.some(c => c.stage === PipelineStage.Distributor)
+          const hasClonerWarning = hasCloner && !hasDistributor
+          return (<>
+            {hasOrderWarning && (
+              <div style={{
+                marginBottom: 8, padding: '6px 10px',
+                background: '#2a1f00', border: '1px solid #5a3f00',
+                borderRadius: 4, fontSize: 11, color: '#c8922a', lineHeight: 1.5,
+              }}>
+                Shape component should come first in the pipeline — components above it receive no input.
+              </div>
+            )}
+            {hasClonerWarning && (
+              <div style={{
+                marginBottom: 8, padding: '6px 10px',
+                background: '#1a1f2a', border: '1px solid #2a3a5a',
+                borderRadius: 4, fontSize: 11, color: '#7aa2d4', lineHeight: 1.5,
+              }}>
+                Cloner has no distributor — all clones stack at the same position. Add a Radial, Linear, or Grid Distributor.
+              </div>
+            )}
+          </>)
         })()}
         {components.map((comp, i) => (
           <React.Fragment key={i}>

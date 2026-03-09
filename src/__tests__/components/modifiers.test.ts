@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { RadialClonerComponent } from '../../components/modifiers/RadialClonerComponent'
-import { LinearClonerComponent } from '../../components/modifiers/LinearClonerComponent'
-import { GridClonerComponent }   from '../../components/modifiers/GridClonerComponent'
+import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { RadialDistributor } from '../../components/distributors/RadialDistributor'
+import { LinearDistributor } from '../../components/distributors/LinearDistributor'
+import { GridDistributor } from '../../components/distributors/GridDistributor'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
 import { PipelineStage } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
@@ -14,22 +15,34 @@ function makeItem(x = 0, y = 0): DrawItem {
   }
 }
 
-describe('RadialClonerComponent', () => {
+describe('ClonerComponent', () => {
   it('is in Modifier stage', () => {
-    expect(new RadialClonerComponent().stage).toBe(PipelineStage.Modifier)
+    expect(new ClonerComponent().stage).toBe(PipelineStage.Modifier)
   })
 
   it('produces count × input items', () => {
-    const cloner = new RadialClonerComponent()
+    const cloner = new ClonerComponent()
     cloner.count.value = 6
     expect(cloner.process!([makeItem()])).toHaveLength(6)
   })
 
+  it('multiplies multiple input items', () => {
+    const cloner = new ClonerComponent()
+    cloner.count.value = 3
+    expect(cloner.process!([makeItem(), makeItem()])).toHaveLength(6)
+  })
+})
+
+describe('RadialDistributor', () => {
+  it('is in Distributor stage', () => {
+    expect(new RadialDistributor().stage).toBe(PipelineStage.Distributor)
+  })
+
   it('distributes items evenly around a circle', () => {
-    const cloner = new RadialClonerComponent()
-    cloner.count.value = 4
-    cloner.radius.value = 100
-    const result = cloner.process!([makeItem()])
+    const dist = new RadialDistributor()
+    dist.radius.value = 100
+    const items = Array.from({ length: 4 }, () => makeItem())
+    const result = dist.process!(items)
     expect(result[0].transform.x).toBeCloseTo(100)
     expect(result[0].transform.y).toBeCloseTo(0)
     expect(result[1].transform.x).toBeCloseTo(0)
@@ -38,49 +51,44 @@ describe('RadialClonerComponent', () => {
     expect(result[2].transform.y).toBeCloseTo(0)
   })
 
-  it('each clone has a rotation offset matching its angle', () => {
-    const cloner = new RadialClonerComponent()
-    cloner.count.value = 4
-    const result = cloner.process!([makeItem()])
+  it('each item has rotation offset matching its angle', () => {
+    const dist = new RadialDistributor()
+    dist.radius.value = 100
+    const items = Array.from({ length: 4 }, () => makeItem())
+    const result = dist.process!(items)
     expect(result[1].transform.rotation).toBeCloseTo(Math.PI / 2)
-  })
-
-  it('multiplies multiple input items', () => {
-    const cloner = new RadialClonerComponent()
-    cloner.count.value = 3
-    expect(cloner.process!([makeItem(), makeItem()])).toHaveLength(6)
   })
 })
 
-describe('LinearClonerComponent', () => {
-  it('is in Modifier stage', () => {
-    expect(new LinearClonerComponent().stage).toBe(PipelineStage.Modifier)
+describe('LinearDistributor', () => {
+  it('is in Distributor stage', () => {
+    expect(new LinearDistributor().stage).toBe(PipelineStage.Distributor)
   })
 
   it('spaces items along both axes', () => {
-    const cloner = new LinearClonerComponent()
-    cloner.count.value = 3
-    cloner.spacingX.value = 50
-    cloner.spacingY.value = 0
-    const result = cloner.process!([makeItem()])
+    const dist = new LinearDistributor()
+    dist.spacingX.value = 50
+    dist.spacingY.value = 0
+    const items = Array.from({ length: 3 }, () => makeItem())
+    const result = dist.process!(items)
     expect(result[0].transform.x).toBe(0)
     expect(result[1].transform.x).toBe(50)
     expect(result[2].transform.x).toBe(100)
   })
 })
 
-describe('GridClonerComponent', () => {
-  it('is in Modifier stage', () => {
-    expect(new GridClonerComponent().stage).toBe(PipelineStage.Modifier)
+describe('GridDistributor', () => {
+  it('is in Distributor stage', () => {
+    expect(new GridDistributor().stage).toBe(PipelineStage.Distributor)
   })
 
   it('arranges items in rows and columns', () => {
-    const cloner = new GridClonerComponent()
-    cloner.count.value = 6
-    cloner.columns.value = 3
-    cloner.spacingX.value = 60
-    cloner.spacingY.value = 60
-    const result = cloner.process!([makeItem()])
+    const dist = new GridDistributor()
+    dist.columns.value = 3
+    dist.spacingX.value = 60
+    dist.spacingY.value = 60
+    const items = Array.from({ length: 6 }, () => makeItem())
+    const result = dist.process!(items)
     expect(result[0].transform).toMatchObject({ x: 0,   y: 0 })
     expect(result[1].transform).toMatchObject({ x: 60,  y: 0 })
     expect(result[3].transform).toMatchObject({ x: 0,   y: 60 })

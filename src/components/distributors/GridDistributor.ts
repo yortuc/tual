@@ -2,18 +2,18 @@ import { Component, PipelineStage, type GizmoContext } from '../../ecs/Component
 import type { DrawItem } from '../../renderer/DrawItem'
 import { NumberProp } from '../../props/NumberProp'
 
-export class GridClonerComponent extends Component {
-  readonly stage = PipelineStage.Modifier
-  readonly label = 'Grid Cloner'
+export class GridDistributor extends Component {
+  readonly stage = PipelineStage.Distributor
+  readonly label = 'Grid Distributor'
 
-  count    = new NumberProp('Count',     { default: 12, min: 1,  max: 200 })
   columns  = new NumberProp('Columns',   { default: 4,  min: 1,  max: 50 })
   spacingX = new NumberProp('Spacing X', { default: 80, min: 0,  max: 1000 })
   spacingY = new NumberProp('Spacing Y', { default: 80, min: 0,  max: 1000 })
 
-  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
-    const n = Math.round(this.count.value)
-    const cols = Math.round(this.columns.value)
+  renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
+    const n = itemCount
+    if (n === 0) return
+    const cols = Math.max(1, Math.round(this.columns.value))
     const rows = Math.ceil(n / cols)
     ctx.save()
     ctx.strokeStyle = this.gizmoColor
@@ -42,19 +42,14 @@ export class GridClonerComponent extends Component {
   }
 
   process(items: DrawItem[]): DrawItem[] {
-    const result: DrawItem[] = []
-    const n = Math.round(this.count.value)
-    const cols = Math.round(this.columns.value)
-    for (let i = 0; i < n; i++) {
-      const dx = (i % cols) * this.spacingX.value
-      const dy = Math.floor(i / cols) * this.spacingY.value
-      for (const item of items) {
-        result.push({
-          ...item,
-          transform: { ...item.transform, x: item.transform.x + dx, y: item.transform.y + dy },
-        })
-      }
-    }
-    return result
+    const cols = Math.max(1, Math.round(this.columns.value))
+    return items.map((item, i) => ({
+      ...item,
+      transform: {
+        ...item.transform,
+        x: item.transform.x + (i % cols) * this.spacingX.value,
+        y: item.transform.y + Math.floor(i / cols) * this.spacingY.value,
+      },
+    }))
   }
 }

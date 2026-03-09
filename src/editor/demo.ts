@@ -6,7 +6,8 @@ import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
-import { RadialClonerComponent } from '../components/modifiers/RadialClonerComponent'
+import { ClonerComponent } from '../components/modifiers/ClonerComponent'
+import { RadialDistributor } from '../components/distributors/RadialDistributor'
 
 const CENTER = { x: 450, y: 340 }
 
@@ -19,10 +20,13 @@ export function initDemo(): void {
   outerRect.height.value = 80
   world.addComponent(outer, outerRect)
 
-  const outerCloner = new RadialClonerComponent()
+  const outerCloner = new ClonerComponent()
   outerCloner.count.value = 30
-  outerCloner.radius.value = 200
   world.addComponent(outer, outerCloner)
+
+  const outerDist = new RadialDistributor()
+  outerDist.radius.value = 200
+  world.addComponent(outer, outerDist)
 
   const outerTransform = new TransformComponent()
   outerTransform.position.value = { ...CENTER }
@@ -44,10 +48,13 @@ export function initDemo(): void {
   middleRect.height.value = 14
   world.addComponent(middle, middleRect)
 
-  const middleCloner = new RadialClonerComponent()
+  const middleCloner = new ClonerComponent()
   middleCloner.count.value = 16
-  middleCloner.radius.value = 115
   world.addComponent(middle, middleCloner)
+
+  const middleDist = new RadialDistributor()
+  middleDist.radius.value = 115
+  world.addComponent(middle, middleDist)
 
   const middleTransform = new TransformComponent()
   middleTransform.position.value = { ...CENTER }

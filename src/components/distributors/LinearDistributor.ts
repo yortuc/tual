@@ -2,16 +2,16 @@ import { Component, PipelineStage, type GizmoContext } from '../../ecs/Component
 import type { DrawItem } from '../../renderer/DrawItem'
 import { NumberProp } from '../../props/NumberProp'
 
-export class LinearClonerComponent extends Component {
-  readonly stage = PipelineStage.Modifier
-  readonly label = 'Linear Cloner'
+export class LinearDistributor extends Component {
+  readonly stage = PipelineStage.Distributor
+  readonly label = 'Linear Distributor'
 
-  count    = new NumberProp('Count',     { default: 5,  min: 1, max: 200 })
   spacingX = new NumberProp('Spacing X', { default: 80, min: -1000, max: 1000 })
   spacingY = new NumberProp('Spacing Y', { default: 0,  min: -1000, max: 1000 })
 
-  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
-    const n = Math.round(this.count.value)
+  renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
+    const n = itemCount
+    if (n === 0) return
     ctx.save()
     ctx.strokeStyle = this.gizmoColor
     ctx.fillStyle = this.gizmoColor
@@ -22,7 +22,7 @@ export class LinearClonerComponent extends Component {
       const sx = this.spacingX.value * zoom
       const sy = this.spacingY.value * zoom
 
-      // Dashed line from first to last clone
+      // Dashed line from first to last item
       ctx.setLineDash([5, 4])
       ctx.beginPath()
       ctx.moveTo(x, y)
@@ -47,7 +47,7 @@ export class LinearClonerComponent extends Component {
         ctx.globalAlpha = 0.65
       }
 
-      // Dot at each clone position
+      // Dot at each item position
       for (let i = 0; i < n; i++) {
         ctx.beginPath()
         ctx.arc(x + i * sx, y + i * sy, 3.5, 0, Math.PI * 2)
@@ -59,18 +59,13 @@ export class LinearClonerComponent extends Component {
   }
 
   process(items: DrawItem[]): DrawItem[] {
-    const result: DrawItem[] = []
-    const n = Math.round(this.count.value)
-    for (let i = 0; i < n; i++) {
-      const dx = i * this.spacingX.value
-      const dy = i * this.spacingY.value
-      for (const item of items) {
-        result.push({
-          ...item,
-          transform: { ...item.transform, x: item.transform.x + dx, y: item.transform.y + dy },
-        })
-      }
-    }
-    return result
+    return items.map((item, i) => ({
+      ...item,
+      transform: {
+        ...item.transform,
+        x: item.transform.x + i * this.spacingX.value,
+        y: item.transform.y + i * this.spacingY.value,
+      },
+    }))
   }
 }

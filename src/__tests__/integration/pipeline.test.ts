@@ -7,8 +7,9 @@ import { FillComponent } from '../../components/styles/FillComponent'
 import { StrokeComponent } from '../../components/styles/StrokeComponent'
 import { ShadowComponent } from '../../components/styles/ShadowComponent'
 import { OpacityComponent } from '../../components/styles/OpacityComponent'
-import { RadialClonerComponent } from '../../components/modifiers/RadialClonerComponent'
-import { LinearClonerComponent } from '../../components/modifiers/LinearClonerComponent'
+import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { RadialDistributor } from '../../components/distributors/RadialDistributor'
+import { LinearDistributor } from '../../components/distributors/LinearDistributor'
 import { MirrorComponent } from '../../components/modifiers/MirrorComponent'
 
 describe('Pipeline integration', () => {
@@ -37,14 +38,17 @@ describe('Pipeline integration', () => {
     expect(item.style.fill).toBe('#ff0000')
   })
 
-  it('cloner + transform: clones are positioned relative to entity origin, then entity is moved', () => {
+  it('cloner + distributor + transform: clones are positioned relative to entity origin', () => {
     const id = world.createEntity()
     world.addComponent(id, new CircleComponent())
 
-    const cloner = new RadialClonerComponent()
+    const cloner = new ClonerComponent()
     cloner.count.value = 4
-    cloner.radius.value = 100
     world.addComponent(id, cloner)
+
+    const dist = new RadialDistributor()
+    dist.radius.value = 100
+    world.addComponent(id, dist)
 
     const t = new TransformComponent()
     t.position.value = { x: 200, y: 200 }
@@ -53,7 +57,7 @@ describe('Pipeline integration', () => {
     const items = world.runPipeline(id)
     expect(items).toHaveLength(4)
 
-    // First clone is at angle 0: (100, 0) + entity (200, 200) = (300, 200)
+    // First item is at angle 0: (100, 0) + entity (200, 200) = (300, 200)
     expect(items[0].transform.x).toBeCloseTo(300)
     expect(items[0].transform.y).toBeCloseTo(200)
   })
@@ -62,7 +66,7 @@ describe('Pipeline integration', () => {
     const id = world.createEntity()
     world.addComponent(id, new RectComponent())
 
-    const cloner = new RadialClonerComponent()
+    const cloner = new ClonerComponent()
     cloner.count.value = 6
     world.addComponent(id, cloner)
 
@@ -82,7 +86,7 @@ describe('Pipeline integration', () => {
     const id = world.createEntity()
     world.addComponent(id, new RectComponent())
 
-    const cloner = new RadialClonerComponent()
+    const cloner = new ClonerComponent()
     cloner.count.value = 5
     world.addComponent(id, cloner)
 
@@ -102,7 +106,7 @@ describe('Pipeline integration', () => {
     })
   })
 
-  it('full stack: rect + cloner + mirror + transform + fill + stroke + shadow + opacity', () => {
+  it('full stack: rect + cloner + distributor + mirror + transform + fill + stroke + shadow + opacity', () => {
     const id = world.createEntity('Full Stack')
 
     const rect = new RectComponent()
@@ -110,11 +114,14 @@ describe('Pipeline integration', () => {
     rect.height.value = 60
     world.addComponent(id, rect)
 
-    const cloner = new LinearClonerComponent()
+    const cloner = new ClonerComponent()
     cloner.count.value = 3
-    cloner.spacingX.value = 80
-    cloner.spacingY.value = 0
     world.addComponent(id, cloner)
+
+    const dist = new LinearDistributor()
+    dist.spacingX.value = 80
+    dist.spacingY.value = 0
+    world.addComponent(id, dist)
 
     const mirror = new MirrorComponent()
     mirror.axis.value = 'Y'
@@ -167,10 +174,10 @@ describe('Pipeline integration', () => {
     })
   })
 
-  it('entity with no shape component but modifiers and styles produces no output', () => {
+  it('entity with no shape component but modifiers produces no output', () => {
     const id = world.createEntity()
     world.addComponent(id, new FillComponent())
-    world.addComponent(id, new RadialClonerComponent())
+    world.addComponent(id, new ClonerComponent())
     world.addComponent(id, new TransformComponent())
     expect(world.runPipeline(id)).toHaveLength(0)
   })
