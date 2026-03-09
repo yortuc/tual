@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <filter id="glow-gold" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-purple" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="#111111"/>
+
+  <!-- Dashed orbit ring (RadialDistributor gizmo) -->
+  <circle cx="16" cy="16" r="9" fill="none"
+    stroke="#a78bfa" stroke-width="0.8" stroke-opacity="0.45"
+    stroke-dasharray="2.2 2"/>
+
+  <!-- Spoke lines (subtle connection from center to each clone) -->
+  <line x1="16" y1="16" x2="25"   y2="16"    stroke="#a78bfa" stroke-width="0.6" stroke-opacity="0.25"/>
+  <line x1="16" y1="16" x2="20.5" y2="23.79" stroke="#a78bfa" stroke-width="0.6" stroke-opacity="0.25"/>
+  <line x1="16" y1="16" x2="11.5" y2="23.79" stroke="#a78bfa" stroke-width="0.6" stroke-opacity="0.25"/>
+  <line x1="16" y1="16" x2="7"    y2="16"    stroke="#a78bfa" stroke-width="0.6" stroke-opacity="0.25"/>
+  <line x1="16" y1="16" x2="11.5" y2="8.21"  stroke="#a78bfa" stroke-width="0.6" stroke-opacity="0.25"/>
+  <line x1="16" y1="16" x2="20.5" y2="8.21"  stroke="#a78bfa" stroke-width="0.6" stroke-opacity="0.25"/>
+
+  <!-- Outer clones (6 at radius 9, purple) -->
+  <circle cx="25"   cy="16"    r="2.4" fill="#a78bfa" filter="url(#glow-purple)"/>
+  <circle cx="20.5" cy="23.79" r="2.4" fill="#a78bfa" filter="url(#glow-purple)"/>
+  <circle cx="11.5" cy="23.79" r="2.4" fill="#a78bfa" filter="url(#glow-purple)"/>
+  <circle cx="7"    cy="16"    r="2.4" fill="#a78bfa" filter="url(#glow-purple)"/>
+  <circle cx="11.5" cy="8.21"  r="2.4" fill="#a78bfa" filter="url(#glow-purple)"/>
+  <circle cx="20.5" cy="8.21"  r="2.4" fill="#a78bfa" filter="url(#glow-purple)"/>
+
+  <!-- Center source shape (gold) -->
+  <circle cx="16" cy="16" r="3.4" fill="#fbbf24" filter="url(#glow-gold)"/>
+</svg>
