@@ -5,6 +5,9 @@ import { COMPONENT_REGISTRY } from './componentRegistry'
 export interface SerializedComponent {
   type: string
   props: Record<string, unknown>
+  groupId?: string
+  groupLabel?: string
+  channels?: Record<string, string>  // propKey → channel name
 }
 
 export interface SerializedEntity {
@@ -22,12 +25,23 @@ export function serializeWorld(world: World): SerializedScene {
     version: 1,
     entities: world.getEntityIds().map(id => ({
       name: world.getEntityName(id),
-      components: world.getComponents(id).map(comp => ({
-        type: comp.constructor.name,
-        props: Object.fromEntries(
-          comp.getProps().map(([key, prop]) => [key, prop.serialize()])
-        ),
-      })),
+      components: world.getComponents(id).map(comp => {
+        const channels: Record<string, string> = {}
+        for (const [key, prop] of comp.getProps()) {
+          const ch = (prop as { channel?: string }).channel
+          if (ch) channels[key] = ch
+        }
+        const entry: SerializedComponent = {
+          type: comp.constructor.name,
+          props: Object.fromEntries(
+            comp.getProps().map(([key, prop]) => [key, prop.serialize()])
+          ),
+        }
+        if (comp.groupId)              entry.groupId   = comp.groupId
+        if (comp.groupLabel)           entry.groupLabel = comp.groupLabel
+        if (Object.keys(channels).length) entry.channels = channels
+        return entry
+      }),
     })),
   }
 }
@@ -51,6 +65,19 @@ export function loadScene(scene: SerializedScene, world: World): void {
           comp.onPropChanged?.(prop)
         }
       }
+      // Restore channel bindings
+      if (compData.channels) {
+        for (const [key, channelName] of Object.entries(compData.channels)) {
+          const entry = comp.getProps().find(([k]) => k === key)
+          if (entry && 'channel' in entry[1]) {
+            (entry[1] as { channel: string }).channel = channelName
+          }
+        }
+      }
+      // Restore group membership
+      if (compData.groupId)    comp.groupId   = compData.groupId
+      if (compData.groupLabel) comp.groupLabel = compData.groupLabel
+
       world.addComponent(id, comp)
     }
   }

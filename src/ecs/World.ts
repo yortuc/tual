@@ -70,6 +70,19 @@ export class World {
     eventBus.emit('world:changed')
   }
 
+  reorderGroup(entityId: number, groupId: string, toIndex: number): void {
+    const components = this.entities.get(entityId)
+    if (!components) return
+    const groupIndices = components
+      .map((c, i) => ({ c, i })).filter(({ c }) => c.groupId === groupId).map(({ i }) => i)
+    if (groupIndices.length === 0) return
+    const groupComps = groupIndices.map(i => components[i])
+    for (let i = groupIndices.length - 1; i >= 0; i--) components.splice(groupIndices[i], 1)
+    const removedBefore = groupIndices.filter(i => i < toIndex).length
+    components.splice(Math.min(toIndex - removedBefore, components.length), 0, ...groupComps)
+    eventBus.emit('world:changed')
+  }
+
   reorderComponent(entityId: number, fromIndex: number, toIndex: number): void {
     const components = this.entities.get(entityId)
     if (!components) return

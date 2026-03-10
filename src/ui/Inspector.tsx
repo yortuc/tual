@@ -6,7 +6,10 @@ import { sceneStore } from '../editor/SceneStore'
 import { Component, PipelineStage } from '../ecs/Component'
 import { Prop } from '../props/Prop'
 import { historyStore } from '../ecs/HistoryStore'
-import { SetPropCommand, AddComponentCommand, RemoveComponentCommand, ReorderComponentCommand } from '../ecs/Command'
+import {
+  SetPropCommand, AddComponentCommand, RemoveComponentCommand,
+  ReorderComponentCommand, RemoveGroupCommand, ReorderGroupCommand, CompoundCommand,
+} from '../ecs/Command'
 import { GlowComponent } from '../components/scene/GlowComponent'
 import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
@@ -21,8 +24,49 @@ import { NoiseSignal } from '../components/signals/NoiseSignal'
 import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
+import {
+  createColorGradientBundle,
+  createOpacityFadeBundle,
+  createColorWaveBundle,
+} from '../editor/bundles'
 
-const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: () => Component }[] }[] = [
+// ---- TL (top-level) item model ----
+
+type SoloItem  = { kind: 'solo';  component: Component; flatIndex: number }
+type GroupItem = { kind: 'group'; groupId: string; groupLabel: string; members: { component: Component; flatIndex: number }[]; firstFlatIndex: number }
+type TLItem = SoloItem | GroupItem
+
+function buildTLItems(components: Component[]): TLItem[] {
+  const items: TLItem[] = []
+  const seen = new Set<string>()
+  for (let i = 0; i < components.length; i++) {
+    const comp = components[i]
+    if (!comp.groupId) {
+      items.push({ kind: 'solo', component: comp, flatIndex: i })
+    } else if (!seen.has(comp.groupId)) {
+      seen.add(comp.groupId)
+      const members = components
+        .map((c, j) => ({ component: c, flatIndex: j }))
+        .filter(({ component: c }) => c.groupId === comp.groupId)
+      items.push({ kind: 'group', groupId: comp.groupId, groupLabel: comp.groupLabel ?? comp.groupId, members, firstFlatIndex: i })
+    }
+  }
+  return items
+}
+
+// ---- Menu config ----
+
+type MenuCreateFn = () => Component | Component[]
+
+const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: MenuCreateFn }[] }[] = [
+  {
+    category: 'Bundles',
+    items: [
+      { label: 'Color Gradient', create: createColorGradientBundle },
+      { label: 'Opacity Fade',   create: createOpacityFadeBundle },
+      { label: 'Color Wave',     create: createColorWaveBundle },
+    ],
+  },
   {
     category: 'Modifiers',
     items: [
@@ -58,6 +102,8 @@ const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: 
   },
 ]
 
+// ---- PropRow ----
+
 function PropRow({ prop, onPropChanged }: { prop: Prop<unknown>; onPropChanged?: () => void }) {
   const [, tick] = useState(0)
   const startValueRef = useRef<unknown>(prop.value)
@@ -86,8 +132,10 @@ function PropRow({ prop, onPropChanged }: { prop: Prop<unknown>; onPropChanged?:
   )
 }
 
+// ---- ComponentSection ----
+
 function ComponentSection({
-  component, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision,
+  component, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision, draggable = true,
 }: {
   component: Component
   onRemove: () => void
@@ -96,6 +144,7 @@ function ComponentSection({
   onDragEnd?: () => void
   onDrop?: () => void
   collapseRevision?: number
+  draggable?: boolean
 }) {
   const [collapsed, setCollapsed] = useState(false)
   useEffect(() => { if (collapseRevision) setCollapsed(true) }, [collapseRevision])
@@ -109,7 +158,7 @@ function ComponentSection({
       style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}
     >
       <div
-        draggable
+        draggable={draggable}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onClick={() => setCollapsed(c => !c)}
@@ -119,7 +168,7 @@ function ComponentSection({
           alignItems: 'center',
           padding: '5px 10px',
           background: '#222',
-          cursor: 'grab',
+          cursor: draggable ? 'grab' : 'default',
           fontSize: 12,
           fontWeight: 600,
           color: '#ccc',
@@ -127,7 +176,7 @@ function ComponentSection({
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color: '#444', fontSize: 11, marginRight: 2 }}>⠿</span>
+          {draggable && <span style={{ color: '#444', fontSize: 11, marginRight: 2 }}>⠿</span>}
           <span style={{ color: '#555', fontSize: 10 }}>{collapsed ? '▶' : '▼'}</span>
           <span style={{
             width: 8, height: 8, borderRadius: '50%',
@@ -152,8 +201,84 @@ function ComponentSection({
   )
 }
 
+// ---- GroupSection ----
+
+function GroupSection({
+  item, onRemoveGroup, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision, onRemoveMember,
+}: {
+  item: GroupItem
+  onRemoveGroup: () => void
+  onDragStart?: () => void
+  onDragEnter?: () => void
+  onDragEnd?: () => void
+  onDrop?: () => void
+  collapseRevision?: number
+  onRemoveMember: (comp: Component) => void
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => { if (collapseRevision) setCollapsed(true) }, [collapseRevision])
+  const gizmoColor = item.members[0]?.component.gizmoColor ?? '#888'
+
+  return (
+    <div
+      onDragEnter={e => { e.preventDefault(); onDragEnter?.() }}
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => { e.preventDefault(); onDrop?.() }}
+      style={{ marginBottom: 6, border: '1px solid #3a2d52', borderRadius: 4, overflow: 'hidden' }}
+    >
+      <div
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onClick={() => setCollapsed(c => !c)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '5px 10px',
+          background: '#1e1a2e',
+          cursor: 'grab',
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#c4b5f4',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: '#6b5a8e', fontSize: 11, marginRight: 2 }}>⠿</span>
+          <span style={{ color: '#6b5a8e', fontSize: 10 }}>{collapsed ? '▶' : '▼'}</span>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: gizmoColor, display: 'inline-block', flexShrink: 0 }} />
+          {item.groupLabel}
+          <span style={{ color: '#6b5a8e', fontSize: 10, fontWeight: 400, marginLeft: 2 }}>({item.members.length})</span>
+        </span>
+        <button
+          onClick={e => { e.stopPropagation(); onRemoveGroup() }}
+          style={{ background: 'none', border: 'none', color: '#6b5a8e', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}
+        >
+          ×
+        </button>
+      </div>
+      {!collapsed && (
+        <div style={{ paddingLeft: 8, paddingRight: 4, paddingBottom: 4, paddingTop: 4, background: '#131218' }}>
+          {item.members.map(({ component, flatIndex }) => (
+            <ComponentSection
+              key={flatIndex}
+              component={component}
+              draggable={false}
+              onRemove={() => onRemoveMember(component)}
+              collapseRevision={collapseRevision}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---- AddComponentMenu ----
+
 function AddComponentMenu({ onAdd, onClose }: {
-  onAdd: (create: () => Component) => void
+  onAdd: (create: MenuCreateFn) => void
   onClose: () => void
 }) {
   const [query, setQuery] = useState('')
@@ -171,7 +296,6 @@ function AddComponentMenu({ onAdd, onClose }: {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, activeCat, query])
 
-  // When searching, go back to page 1 automatically
   useEffect(() => { if (q) setActiveCat(null) }, [q])
 
   const filtered = q
@@ -211,7 +335,6 @@ function AddComponentMenu({ onAdd, onClose }: {
       overflow: 'hidden',
     }}>
 
-      {/* Header — search or breadcrumb */}
       <div style={{ borderBottom: '1px solid #2a2a2a' }}>
         {onPage2 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
@@ -247,7 +370,6 @@ function AddComponentMenu({ onAdd, onClose }: {
         )}
       </div>
 
-      {/* Sliding pages */}
       <div style={{ overflow: 'hidden' }}>
         <div style={{
           display: 'flex',
@@ -256,7 +378,6 @@ function AddComponentMenu({ onAdd, onClose }: {
           transition: 'transform 0.16s ease',
         }}>
 
-          {/* Page 1 — categories or search results */}
           <div style={{ width: '50%', maxHeight: 260, overflowY: 'auto' }}>
             {filtered ? (
               filtered.length === 0
@@ -269,7 +390,6 @@ function AddComponentMenu({ onAdd, onClose }: {
             )}
           </div>
 
-          {/* Page 2 — items in selected category */}
           <div style={{ width: '50%', maxHeight: 260, overflowY: 'auto' }}>
             {catItems.map(({ label, create }) => row(label, () => onAdd(create)))}
           </div>
@@ -281,6 +401,8 @@ function AddComponentMenu({ onAdd, onClose }: {
   )
 }
 
+// ---- Inspector ----
+
 export function Inspector() {
   const [selectedId, setSelectedId] = useState<number | null>(() => editorStore.selectedEntityId)
   const [components, setComponents] = useState<Component[]>(() => {
@@ -289,9 +411,9 @@ export function Inspector() {
   })
   const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [dragOverTLIndex, setDragOverTLIndex] = useState<number | null>(null)
   const [collapseRevision, setCollapseRevision] = useState(0)
-  const dragIndexRef = useRef<number | null>(null)
+  const dragTLIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
     const refresh = () => {
@@ -330,6 +452,36 @@ export function Inspector() {
         </div>
       </div>
     )
+  }
+
+  const tlItems = buildTLItems(components)
+
+  const handleDrop = (dropTLIdx: number) => {
+    const dIdx = dragTLIndexRef.current
+    if (dIdx === null || dIdx === dropTLIdx) { dragTLIndexRef.current = null; setDragOverTLIndex(null); return }
+    const dragItem = tlItems[dIdx]
+    const dropItem = tlItems[dropTLIdx]
+    const toFlatIdx = dropItem.kind === 'solo' ? dropItem.flatIndex : dropItem.firstFlatIndex
+    if (dragItem.kind === 'solo') {
+      historyStore.execute(new ReorderComponentCommand(selectedId, dragItem.flatIndex, toFlatIdx))
+    } else {
+      historyStore.execute(new ReorderGroupCommand(selectedId, dragItem.groupId, toFlatIdx))
+    }
+    dragTLIndexRef.current = null
+    setDragOverTLIndex(null)
+  }
+
+  const handleAddComponent = (create: MenuCreateFn) => {
+    const result = create()
+    if (Array.isArray(result)) {
+      historyStore.execute(new CompoundCommand(
+        `Add ${(result[0] as Component).groupLabel ?? 'Bundle'}`,
+        result.map(c => new AddComponentCommand(selectedId, c))
+      ))
+    } else {
+      historyStore.execute(new AddComponentCommand(selectedId, result))
+    }
+    setShowAdd(false)
   }
 
   return (
@@ -376,42 +528,57 @@ export function Inspector() {
             )}
           </>)
         })()}
-        {components.map((comp, i) => (
-          <React.Fragment key={i}>
-            {dragOverIndex === i && dragIndexRef.current !== i && dragIndexRef.current !== i - 1 && (
+
+        {tlItems.map((item, tlIdx) => (
+          <React.Fragment key={tlIdx}>
+            {dragOverTLIndex === tlIdx && dragTLIndexRef.current !== tlIdx && dragTLIndexRef.current !== tlIdx - 1 && (
               <div style={{ height: 3, background: '#60a5fa', borderRadius: 2, margin: '2px 0' }} />
             )}
-            <ComponentSection
-              component={comp}
-              collapseRevision={collapseRevision}
-              onRemove={() => historyStore.execute(new RemoveComponentCommand(selectedId, comp))}
-              onDragStart={() => { dragIndexRef.current = i; setDragOverIndex(null) }}
-              onDragEnter={() => setDragOverIndex(i)}
-              onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null) }}
-              onDrop={() => {
-                if (dragIndexRef.current !== null && dragIndexRef.current !== i) {
-                  historyStore.execute(new ReorderComponentCommand(selectedId, dragIndexRef.current, i))
-                }
-                dragIndexRef.current = null
-                setDragOverIndex(null)
-              }}
-            />
+            {item.kind === 'solo' ? (
+              <ComponentSection
+                component={item.component}
+                collapseRevision={collapseRevision}
+                onRemove={() => historyStore.execute(new RemoveComponentCommand(selectedId, item.component))}
+                onDragStart={() => { dragTLIndexRef.current = tlIdx; setDragOverTLIndex(null) }}
+                onDragEnter={() => setDragOverTLIndex(tlIdx)}
+                onDragEnd={() => { dragTLIndexRef.current = null; setDragOverTLIndex(null) }}
+                onDrop={() => handleDrop(tlIdx)}
+              />
+            ) : (
+              <GroupSection
+                item={item}
+                collapseRevision={collapseRevision}
+                onRemoveGroup={() => historyStore.execute(new RemoveGroupCommand(selectedId, item.groupId))}
+                onDragStart={() => { dragTLIndexRef.current = tlIdx; setDragOverTLIndex(null) }}
+                onDragEnter={() => setDragOverTLIndex(tlIdx)}
+                onDragEnd={() => { dragTLIndexRef.current = null; setDragOverTLIndex(null) }}
+                onDrop={() => handleDrop(tlIdx)}
+                onRemoveMember={comp => historyStore.execute(new RemoveComponentCommand(selectedId, comp))}
+              />
+            )}
           </React.Fragment>
         ))}
-        {dragOverIndex === components.length && dragIndexRef.current !== components.length - 1 && (
+
+        {dragOverTLIndex === tlItems.length && dragTLIndexRef.current !== tlItems.length - 1 && (
           <div style={{ height: 3, background: '#60a5fa', borderRadius: 2, margin: '2px 0' }} />
         )}
         <div
           style={{ height: 16 }}
-          onDragEnter={e => { e.preventDefault(); setDragOverIndex(components.length) }}
+          onDragEnter={e => { e.preventDefault(); setDragOverTLIndex(tlItems.length) }}
           onDragOver={e => e.preventDefault()}
           onDrop={e => {
             e.preventDefault()
-            if (dragIndexRef.current !== null && dragIndexRef.current !== components.length - 1) {
-              historyStore.execute(new ReorderComponentCommand(selectedId, dragIndexRef.current, components.length - 1))
+            const dIdx = dragTLIndexRef.current
+            if (dIdx !== null && dIdx !== tlItems.length - 1) {
+              const dragItem = tlItems[dIdx]
+              if (dragItem.kind === 'solo') {
+                historyStore.execute(new ReorderComponentCommand(selectedId, dragItem.flatIndex, components.length - 1))
+              } else {
+                historyStore.execute(new ReorderGroupCommand(selectedId, dragItem.groupId, components.length))
+              }
             }
-            dragIndexRef.current = null
-            setDragOverIndex(null)
+            dragTLIndexRef.current = null
+            setDragOverTLIndex(null)
           }}
         />
 
@@ -433,7 +600,7 @@ export function Inspector() {
           </button>
           {showAdd && (
             <AddComponentMenu
-              onAdd={create => { historyStore.execute(new AddComponentCommand(selectedId, create())); setShowAdd(false) }}
+              onAdd={handleAddComponent}
               onClose={() => setShowAdd(false)}
             />
           )}

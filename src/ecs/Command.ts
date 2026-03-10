@@ -64,6 +64,48 @@ export class RemoveComponentCommand  {
   }
 }
 
+export class RemoveGroupCommand {
+  private savedMembers: { component: Component; index: number; gizmoColor: string }[] = []
+  get label(): string { return `Remove ${this.savedMembers[0]?.component.groupLabel ?? 'Group'}` }
+
+  constructor(private entityId: number, private groupId: string) {}
+
+  execute(): void {
+    const components = world.getComponents(this.entityId)
+    this.savedMembers = components
+      .map((c, i) => ({ component: c, index: i, gizmoColor: c.gizmoColor }))
+      .filter(({ component }) => component.groupId === this.groupId)
+    for (let i = this.savedMembers.length - 1; i >= 0; i--)
+      world.removeComponent(this.entityId, this.savedMembers[i].component)
+  }
+
+  undo(): void {
+    for (const { component, index, gizmoColor } of this.savedMembers) {
+      component.gizmoColor = gizmoColor
+      world.restoreComponent(this.entityId, component, index)
+    }
+  }
+}
+
+export class ReorderGroupCommand {
+  readonly label = 'Reorder Group'
+  private snapshot: Component[] = []
+
+  constructor(private entityId: number, private groupId: string, private toIndex: number) {}
+
+  execute(): void {
+    this.snapshot = [...world.getComponents(this.entityId)]
+    world.reorderGroup(this.entityId, this.groupId, this.toIndex)
+  }
+
+  undo(): void {
+    const components = world.getComponents(this.entityId)
+    components.length = 0
+    components.push(...this.snapshot)
+    eventBus.emit('world:changed')
+  }
+}
+
 export class ReorderComponentCommand  {
   readonly label = 'Reorder Components'
   constructor(private entityId: number, private from: number, private to: number) {}
