@@ -156,16 +156,22 @@ function AddComponentMenu({ onAdd, onClose }: {
   onClose: () => void
 }) {
   const [query, setQuery] = useState('')
+  const [activeCat, setActiveCat] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const q = query.toLowerCase().trim()
 
   useEffect(() => { searchRef.current?.focus() }, [])
-
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { activeCat ? setActiveCat(null) : onClose() }
+      if (e.key === 'Backspace' && !query && activeCat) setActiveCat(null)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, activeCat, query])
+
+  // When searching, go back to page 1 automatically
+  useEffect(() => { if (q) setActiveCat(null) }, [q])
 
   const filtered = q
     ? COMPONENT_CATEGORIES
@@ -173,7 +179,21 @@ function AddComponentMenu({ onAdd, onClose }: {
         .filter(item => item.label.toLowerCase().includes(q) || item.category.toLowerCase().includes(q))
     : null
 
-  const itemStyle = { padding: '6px 14px', cursor: 'pointer', fontSize: 12, color: '#bbb' }
+  const catItems = activeCat ? COMPONENT_CATEGORIES.find(c => c.category === activeCat)?.items ?? [] : []
+  const onPage2 = !!activeCat && !q
+
+  const row = (label: string, onClick: () => void, hint?: string) => (
+    <div
+      key={label}
+      onClick={onClick}
+      style={{ padding: '7px 14px', cursor: 'pointer', fontSize: 12, color: '#bbb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#2a2a2a')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      <span>{label}</span>
+      {hint && <span style={{ color: '#555', fontSize: 11 }}>{hint}</span>}
+    </div>
+  )
 
   return (
     <div style={{
@@ -182,82 +202,80 @@ function AddComponentMenu({ onAdd, onClose }: {
       left: 0,
       right: 0,
       zIndex: 100,
-      background: '#222',
+      background: '#1e1e1e',
       border: '1px solid #3a3a3a',
       borderRadius: 4,
       marginTop: 2,
-      boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
       overflow: 'hidden',
     }}>
-      {/* Search */}
-      <div style={{ padding: '7px 8px', borderBottom: '1px solid #2e2e2e' }}>
-        <input
-          ref={searchRef}
-          type="text"
-          placeholder="Search components..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            background: '#2a2a2a',
-            border: '1px solid #444',
-            color: '#ddd',
-            padding: '4px 8px',
-            borderRadius: 3,
-            fontSize: 12,
-            outline: 'none',
-          }}
-        />
-      </div>
 
-      {/* Results */}
-      <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-        {filtered ? (
-          filtered.length === 0 ? (
-            <div style={{ padding: '10px 14px', fontSize: 12, color: '#555' }}>No results</div>
-          ) : (
-            filtered.map(({ label, create, category }) => (
-              <div
-                key={`${category}/${label}`}
-                onClick={() => onAdd(create)}
-                style={itemStyle}
-                onMouseEnter={e => (e.currentTarget.style.background = '#2e2e2e')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span style={{ color: '#555', fontSize: 10, marginRight: 6 }}>{category}</span>
-                {label}
-              </div>
-            ))
-          )
+      {/* Header — search or breadcrumb */}
+      <div style={{ borderBottom: '1px solid #2a2a2a' }}>
+        {onPage2 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            <button
+              onClick={() => setActiveCat(null)}
+              style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: '8px 10px', fontSize: 13, lineHeight: 1 }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#aaa')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+            >‹</button>
+            <span style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>{activeCat}</span>
+          </div>
         ) : (
-          COMPONENT_CATEGORIES.map(({ category, items }) => (
-            <div key={category}>
-              <div style={{
-                padding: '6px 10px 3px',
-                fontSize: 10,
-                color: '#555',
-                textTransform: 'uppercase',
-                letterSpacing: '0.7px',
-                fontWeight: 600,
-              }}>
-                {category}
-              </div>
-              {items.map(({ label, create }) => (
-                <div
-                  key={label}
-                  onClick={() => onAdd(create)}
-                  style={{ ...itemStyle, paddingLeft: 20 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#2e2e2e')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          ))
+          <div style={{ padding: '7px 8px' }}>
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search components..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                background: '#2a2a2a',
+                border: '1px solid #383838',
+                color: '#ddd',
+                padding: '4px 8px',
+                borderRadius: 3,
+                fontSize: 12,
+                outline: 'none',
+              }}
+            />
+          </div>
         )}
       </div>
+
+      {/* Sliding pages */}
+      <div style={{ overflow: 'hidden' }}>
+        <div style={{
+          display: 'flex',
+          width: '200%',
+          transform: onPage2 ? 'translateX(-50%)' : 'translateX(0)',
+          transition: 'transform 0.16s ease',
+        }}>
+
+          {/* Page 1 — categories or search results */}
+          <div style={{ width: '50%', maxHeight: 260, overflowY: 'auto' }}>
+            {filtered ? (
+              filtered.length === 0
+                ? <div style={{ padding: '10px 14px', fontSize: 12, color: '#555' }}>No results</div>
+                : filtered.map(({ label, create, category }) => row(label, () => onAdd(create), category))
+            ) : (
+              COMPONENT_CATEGORIES.map(({ category, items }) =>
+                row(category, () => setActiveCat(category), `${items.length} ›`)
+              )
+            )}
+          </div>
+
+          {/* Page 2 — items in selected category */}
+          <div style={{ width: '50%', maxHeight: 260, overflowY: 'auto' }}>
+            {catItems.map(({ label, create }) => row(label, () => onAdd(create)))}
+          </div>
+
+        </div>
+      </div>
+
     </div>
   )
 }
