@@ -22,20 +22,40 @@ import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
 
-const ADDABLE: { label: string; create: () => Component }[] = [
-  { label: 'Cloner',             create: () => new ClonerComponent() },
-  { label: 'Radial Distributor', create: () => new RadialDistributor() },
-  { label: 'Linear Distributor', create: () => new LinearDistributor() },
-  { label: 'Grid Distributor',   create: () => new GridDistributor() },
-  { label: 'Mirror',             create: () => new MirrorComponent() },
-  { label: 'Gradient',           create: () => new GradientMutator() },
-  { label: 'Ramp Signal',        create: () => new RampSignal() },
-  { label: 'Wave Signal',        create: () => new WaveSignal() },
-  { label: 'Noise Signal',       create: () => new NoiseSignal() },
-  { label: 'Fill',               create: () => new FillComponent() },
-  { label: 'Stroke',             create: () => new StrokeComponent() },
-  { label: 'Shadow',             create: () => new ShadowComponent() },
-  { label: 'Opacity',            create: () => new OpacityComponent() },
+const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: () => Component }[] }[] = [
+  {
+    category: 'Modifiers',
+    items: [
+      { label: 'Cloner',   create: () => new ClonerComponent() },
+      { label: 'Mirror',   create: () => new MirrorComponent() },
+      { label: 'Gradient', create: () => new GradientMutator() },
+    ],
+  },
+  {
+    category: 'Distributors',
+    items: [
+      { label: 'Radial', create: () => new RadialDistributor() },
+      { label: 'Linear', create: () => new LinearDistributor() },
+      { label: 'Grid',   create: () => new GridDistributor() },
+    ],
+  },
+  {
+    category: 'Signals',
+    items: [
+      { label: 'Ramp',  create: () => new RampSignal() },
+      { label: 'Wave',  create: () => new WaveSignal() },
+      { label: 'Noise', create: () => new NoiseSignal() },
+    ],
+  },
+  {
+    category: 'Styles',
+    items: [
+      { label: 'Fill',    create: () => new FillComponent() },
+      { label: 'Stroke',  create: () => new StrokeComponent() },
+      { label: 'Shadow',  create: () => new ShadowComponent() },
+      { label: 'Opacity', create: () => new OpacityComponent() },
+    ],
+  },
 ]
 
 function PropRow({ prop }: { prop: Prop<unknown> }) {
@@ -66,7 +86,7 @@ function PropRow({ prop }: { prop: Prop<unknown> }) {
 }
 
 function ComponentSection({
-  component, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop,
+  component, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision,
 }: {
   component: Component
   onRemove: () => void
@@ -74,8 +94,10 @@ function ComponentSection({
   onDragEnter?: () => void
   onDragEnd?: () => void
   onDrop?: () => void
+  collapseRevision?: number
 }) {
   const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => { if (collapseRevision) setCollapsed(true) }, [collapseRevision])
   const props = component.getProps()
 
   return (
@@ -129,6 +151,117 @@ function ComponentSection({
   )
 }
 
+function AddComponentMenu({ onAdd, onClose }: {
+  onAdd: (create: () => Component) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const q = query.toLowerCase().trim()
+
+  useEffect(() => { searchRef.current?.focus() }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const filtered = q
+    ? COMPONENT_CATEGORIES
+        .flatMap(c => c.items.map(item => ({ ...item, category: c.category })))
+        .filter(item => item.label.toLowerCase().includes(q) || item.category.toLowerCase().includes(q))
+    : null
+
+  const itemStyle = { padding: '6px 14px', cursor: 'pointer', fontSize: 12, color: '#bbb' }
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      background: '#222',
+      border: '1px solid #3a3a3a',
+      borderRadius: 4,
+      marginTop: 2,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+      overflow: 'hidden',
+    }}>
+      {/* Search */}
+      <div style={{ padding: '7px 8px', borderBottom: '1px solid #2e2e2e' }}>
+        <input
+          ref={searchRef}
+          type="text"
+          placeholder="Search components..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            background: '#2a2a2a',
+            border: '1px solid #444',
+            color: '#ddd',
+            padding: '4px 8px',
+            borderRadius: 3,
+            fontSize: 12,
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      {/* Results */}
+      <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+        {filtered ? (
+          filtered.length === 0 ? (
+            <div style={{ padding: '10px 14px', fontSize: 12, color: '#555' }}>No results</div>
+          ) : (
+            filtered.map(({ label, create, category }) => (
+              <div
+                key={`${category}/${label}`}
+                onClick={() => onAdd(create)}
+                style={itemStyle}
+                onMouseEnter={e => (e.currentTarget.style.background = '#2e2e2e')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span style={{ color: '#555', fontSize: 10, marginRight: 6 }}>{category}</span>
+                {label}
+              </div>
+            ))
+          )
+        ) : (
+          COMPONENT_CATEGORIES.map(({ category, items }) => (
+            <div key={category}>
+              <div style={{
+                padding: '6px 10px 3px',
+                fontSize: 10,
+                color: '#555',
+                textTransform: 'uppercase',
+                letterSpacing: '0.7px',
+                fontWeight: 600,
+              }}>
+                {category}
+              </div>
+              {items.map(({ label, create }) => (
+                <div
+                  key={label}
+                  onClick={() => onAdd(create)}
+                  style={{ ...itemStyle, paddingLeft: 20 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#2e2e2e')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function Inspector() {
   const [selectedId, setSelectedId] = useState<number | null>(() => editorStore.selectedEntityId)
   const [components, setComponents] = useState<Component[]>(() => {
@@ -138,6 +271,7 @@ export function Inspector() {
   const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [collapseRevision, setCollapseRevision] = useState(0)
   const dragIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -181,9 +315,18 @@ export function Inspector() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '7px 12px', borderBottom: '1px solid #2e2e2e', fontSize: 13, color: '#ccc', fontWeight: 600 }}>
-        {world.getEntityName(selectedId)}
-        <span style={{ color: '#444', fontSize: 11, fontWeight: 400, marginLeft: 6 }}>#{selectedId}</span>
+      <div style={{ padding: '7px 12px', borderBottom: '1px solid #2e2e2e', fontSize: 13, color: '#ccc', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>
+          {world.getEntityName(selectedId)}
+          <span style={{ color: '#444', fontSize: 11, fontWeight: 400, marginLeft: 6 }}>#{selectedId}</span>
+        </span>
+        <button
+          onClick={() => setCollapseRevision(r => r + 1)}
+          title="Collapse all"
+          style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#888')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#444')}
+        >⊟</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
@@ -221,6 +364,7 @@ export function Inspector() {
             )}
             <ComponentSection
               component={comp}
+              collapseRevision={collapseRevision}
               onRemove={() => historyStore.execute(new RemoveComponentCommand(selectedId, comp))}
               onDragStart={() => { dragIndexRef.current = i; setDragOverIndex(null) }}
               onDragEnter={() => setDragOverIndex(i)}
@@ -269,30 +413,10 @@ export function Inspector() {
             + Add Component
           </button>
           {showAdd && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 100,
-              background: '#252525',
-              border: '1px solid #3a3a3a',
-              borderRadius: 4,
-              overflow: 'hidden',
-              marginTop: 2,
-            }}>
-              {ADDABLE.map(({ label, create }) => (
-                <div
-                  key={label}
-                  onClick={() => { historyStore.execute(new AddComponentCommand(selectedId, create())); setShowAdd(false) }}
-                  style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 12, color: '#bbb' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#333')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
+            <AddComponentMenu
+              onAdd={create => { historyStore.execute(new AddComponentCommand(selectedId, create())); setShowAdd(false) }}
+              onClose={() => setShowAdd(false)}
+            />
           )}
         </div>
       </div>
