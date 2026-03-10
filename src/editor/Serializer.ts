@@ -48,6 +48,7 @@ export function loadScene(scene: SerializedScene, world: World): void {
       for (const [key, prop] of comp.getProps()) {
         if (key in compData.props) {
           prop.deserialize(compData.props[key] as never)
+          comp.onPropChanged?.(prop)
         }
       }
       world.addComponent(id, comp)

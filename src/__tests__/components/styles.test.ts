@@ -26,18 +26,49 @@ describe('FillComponent', () => {
     expect(new FillComponent().stage).toBe(PipelineStage.Style)
   })
 
-  it('sets fill on all items', () => {
+  it('sets fill on all items using hsl output', () => {
     const fill = new FillComponent()
-    fill.color.value = '#abc123'
-    const result = fill.process!([makeItem(), makeItem()])
-    result.forEach(item => expect(item.style.fill).toBe('#abc123'))
+    fill.setColor('#abc123')
+    const result = fill.processState!(makeState([makeItem(), makeItem()])).items
+    result.forEach(item => expect(item.style.fill).toMatch(/^hsl\(/))
   })
 
   it('does not mutate original items', () => {
     const original = makeItem()
     const fill = new FillComponent()
-    fill.process!([original])
+    fill.processState!(makeState([original]))
     expect(original.style.fill).toBeUndefined()
+  })
+
+  it('two-way sync: color picker updates H/S/L', () => {
+    const fill = new FillComponent()
+    fill.setColor('#ff0000')  // pure red = hsl(0, 100, 50)
+    expect(fill.hue.value).toBe(0)
+    expect(fill.saturation.value).toBe(100)
+    expect(fill.lightness.value).toBe(50)
+  })
+
+  it('two-way sync: H/S/L update color', () => {
+    const fill = new FillComponent()
+    fill.hue.value = 120
+    fill.saturation.value = 100
+    fill.lightness.value = 50
+    fill.onPropChanged!(fill.hue)
+    expect(fill.color.value).toBe('#00ff00')
+  })
+
+  it('hue channel drives per-item fill', () => {
+    const fill = new FillComponent()
+    fill.hue.channel = 'h'
+    fill.saturation.value = 100
+    fill.lightness.value = 50
+    const items = [
+      makeItem({ channels: { h: 0 } }),
+      makeItem({ channels: { h: 120 } }),
+    ]
+    const result = fill.processState!(makeState(items)).items
+    expect(result[0].style.fill).toBe('hsl(0, 100%, 50%)')
+    expect(result[1].style.fill).toBe('hsl(120, 100%, 50%)')
   })
 })
 

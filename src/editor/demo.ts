@@ -37,7 +37,7 @@ export function initDemo(): void {
   world.addComponent(outer, outerTransform)
 
   const outerFill = new FillComponent()
-  outerFill.color.value = '#a78bfa'
+  outerFill.setColor('#a78bfa')
   world.addComponent(outer, outerFill)
 
   const outerOpacity = new OpacityComponent()
@@ -65,7 +65,7 @@ export function initDemo(): void {
   world.addComponent(middle, middleTransform)
 
   const middleFill = new FillComponent()
-  middleFill.color.value = '#f472b6'
+  middleFill.setColor('#f472b6')
   world.addComponent(middle, middleFill)
 
   const middleStroke = new StrokeComponent()
@@ -89,7 +89,7 @@ export function initDemo(): void {
   world.addComponent(center, centerTransform)
 
   const centerFill = new FillComponent()
-  centerFill.color.value = '#fbbf24'
+  centerFill.setColor('#fbbf24')
   world.addComponent(center, centerFill)
 
   const centerShadow = new ShadowComponent()

@@ -66,6 +66,10 @@ export abstract class Component {
   onGizmoHandleDrag?(handleId: string, dx: number, dy: number, zoom: number): void
   onGizmoHandleDragEnd?(handleId: string): void
 
+  // Called by Inspector immediately after any prop value changes.
+  // Override to sync dependent props (e.g. color ↔ H/S/L).
+  onPropChanged?(_prop: Prop<unknown>): void
+
   getProps(): Array<[string, Prop<unknown>]> {
     return Object.entries(this).filter(
       ([, v]) => v instanceof Prop

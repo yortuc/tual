@@ -58,12 +58,13 @@ const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: 
   },
 ]
 
-function PropRow({ prop }: { prop: Prop<unknown> }) {
+function PropRow({ prop, onPropChanged }: { prop: Prop<unknown>; onPropChanged?: () => void }) {
   const [, tick] = useState(0)
   const startValueRef = useRef<unknown>(prop.value)
 
   const onChange = (v: unknown) => {
     prop.value = v
+    onPropChanged?.()
     eventBus.emit('world:changed')
     tick(n => n + 1)
   }
@@ -144,7 +145,7 @@ function ComponentSection({
       </div>
       {!collapsed && props.length > 0 && (
         <div style={{ padding: '8px 10px', background: '#1a1a1a' }}>
-          {props.map(([key, prop]) => <PropRow key={key} prop={prop} />)}
+          {props.map(([key, prop]) => <PropRow key={key} prop={prop} onPropChanged={() => component.onPropChanged?.(prop)} />)}
         </div>
       )}
     </div>

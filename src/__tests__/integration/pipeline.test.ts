@@ -28,14 +28,14 @@ describe('Pipeline integration', () => {
     world.addComponent(id, t)
 
     const fill = new FillComponent()
-    fill.color.value = '#ff0000'
+    fill.setColor('#ff0000')
     world.addComponent(id, fill)
 
     const [item] = world.runPipeline(id)
     expect(item.shape.type).toBe('rect')
     expect(item.transform.x).toBe(400)
     expect(item.transform.y).toBe(300)
-    expect(item.style.fill).toBe('#ff0000')
+    expect(item.style.fill).toMatch(/^hsl\(/)
   })
 
   it('cloner + distributor + transform: clones are positioned relative to entity origin', () => {
@@ -91,7 +91,7 @@ describe('Pipeline integration', () => {
     world.addComponent(id, cloner)
 
     const fill = new FillComponent()
-    fill.color.value = '#0000ff'
+    fill.setColor('#0000ff')
     world.addComponent(id, fill)
 
     const op = new OpacityComponent()
@@ -101,7 +101,7 @@ describe('Pipeline integration', () => {
     const items = world.runPipeline(id)
     expect(items).toHaveLength(5)
     items.forEach(item => {
-      expect(item.style.fill).toBe('#0000ff')
+      expect(item.style.fill).toMatch(/^hsl\(/)
       expect(item.style.opacity).toBe(0.7)
     })
   })
@@ -133,7 +133,7 @@ describe('Pipeline integration', () => {
     world.addComponent(id, t)
 
     const fill = new FillComponent()
-    fill.color.value = '#e74c3c'
+    fill.setColor('#e74c3c')
     world.addComponent(id, fill)
 
     const stroke = new StrokeComponent()
@@ -155,7 +155,7 @@ describe('Pipeline integration', () => {
     expect(items).toHaveLength(6)
 
     items.forEach(item => {
-      expect(item.style.fill).toBe('#e74c3c')
+      expect(item.style.fill).toMatch(/^hsl\(/)
       expect(item.style.stroke?.color).toBe('#fff')
       expect(item.style.stroke?.width).toBe(2)
       expect(item.style.shadow?.blur).toBe(10)

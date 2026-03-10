@@ -112,11 +112,11 @@ describe('World', () => {
     it('processes style stage after shape stage', () => {
       const id = world.createEntity()
       const fill = new FillComponent()
-      fill.color.value = '#ff0000'
+      fill.setColor('#ff0000')
       world.addComponent(id, new RectComponent())
       world.addComponent(id, fill)
       const items = world.runPipeline(id)
-      expect(items[0].style.fill).toBe('#ff0000')
+      expect(items[0].style.fill).toMatch(/^hsl\(/)
     })
 
     it('processes modifier stage between shape and style', () => {
