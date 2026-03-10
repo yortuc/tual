@@ -16,6 +16,32 @@ function tag(components: Component[], id: string, label: string): Component[] {
   return components
 }
 
+// 3 RampSignals (hue, saturation, lightness) + FillComponent, pre-wired
+// Default: blue (HSL 217, 91, 60) → pink (HSL 330, 81, 60)
+export function createColorGradientBundle(): Component[] {
+  const rampH = new RampSignal()
+  rampH.output.value = 'grad-h'
+  rampH.start.value  = 217
+  rampH.end.value    = 330
+
+  const rampS = new RampSignal()
+  rampS.output.value = 'grad-s'
+  rampS.start.value  = 91
+  rampS.end.value    = 81
+
+  const rampL = new RampSignal()
+  rampL.output.value = 'grad-l'
+  rampL.start.value  = 60
+  rampL.end.value    = 60
+
+  const fill = new FillComponent()
+  fill.hue.channel        = 'grad-h'
+  fill.saturation.channel = 'grad-s'
+  fill.lightness.channel  = 'grad-l'
+
+  return tag([rampH, rampS, rampL, fill], makeGroupId(), 'Color Gradient')
+}
+
 // RampSignal outputs fade (1→0) + OpacityComponent reads it
 export function createOpacityFadeBundle(): Component[] {
   const ramp = new RampSignal()
