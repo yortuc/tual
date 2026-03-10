@@ -18,33 +18,14 @@ function ColorEditor({
   onChange: (v: string) => void
   onCommit?: (v: string) => void
 }) {
-  // color input only accepts 6-digit hex
   const hexValue = /^#[0-9a-fA-F]{6}$/.test(prop.value) ? prop.value : '#000000'
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <input
-        type="color"
-        value={hexValue}
-        onChange={e => onChange(e.target.value)}
-        onBlur={e => onCommit?.(e.target.value)}
-        style={{ width: 28, height: 24, border: 'none', cursor: 'pointer', background: 'none', padding: 0 }}
-      />
-      <input
-        type="text"
-        value={prop.value}
-        onChange={e => onChange(e.target.value)}
-        onBlur={e => onCommit?.(e.target.value)}
-        style={{
-          flex: 1,
-          background: '#2a2a2a',
-          border: '1px solid #444',
-          color: '#ddd',
-          padding: '2px 6px',
-          borderRadius: 3,
-          fontFamily: 'monospace',
-          fontSize: 12,
-        }}
-      />
-    </div>
+    <input
+      type="color"
+      value={hexValue}
+      onChange={e => onChange(e.target.value)}
+      onBlur={e => onCommit?.(e.target.value)}
+      style={{ width: '100%', height: 28, border: 'none', cursor: 'pointer', background: 'none', padding: 0, display: 'block' }}
+    />
   )
 }
