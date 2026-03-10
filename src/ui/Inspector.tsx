@@ -10,6 +10,9 @@ import {
   SetPropCommand, AddComponentCommand, RemoveComponentCommand,
   ReorderComponentCommand, RemoveGroupCommand, ReorderGroupCommand, CompoundCommand,
 } from '../ecs/Command'
+import { PreviewCanvas } from './PreviewCanvas'
+import { CircleComponent } from '../components/shapes/CircleComponent'
+import { RectComponent } from '../components/shapes/RectComponent'
 import { GlowComponent } from '../components/scene/GlowComponent'
 import { FillComponent } from '../components/styles/FillComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
@@ -26,6 +29,7 @@ import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
 import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
+import { TransformComponent } from '../components/styles/TransformComponent'
 import {
   createColorGradientBundle,
   createOpacityFadeBundle,
@@ -62,52 +66,168 @@ function buildTLItems(components: Component[]): TLItem[] {
 // ---- Menu config ----
 
 type MenuCreateFn = () => Component | Component[]
+type MenuItem = { label: string; create: MenuCreateFn; preview: () => Component[] }
 
-const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: MenuCreateFn }[] }[] = [
+// Compact preview helpers — each creates a fresh instance configured for a 52×52 thumbnail
+const pv = {
+  circle: (r: number)               => { const c = new CircleComponent(); c.radius.value = r; return c },
+  rect:   (w: number, h: number)    => { const c = new RectComponent();   c.width.value = w; c.height.value = h; return c },
+  fill:   (hex: string)             => { const f = new FillComponent();   f.setColor(hex); return f },
+  fillHCh:(ch: string)              => { const f = new FillComponent();   f.hue.channel = ch; return f },
+  fillHSLCh:(h:string,s:string,l:string) => {
+    const f = new FillComponent(); f.hue.channel = h; f.saturation.channel = s; f.lightness.channel = l; return f
+  },
+  cloner: (n: number)               => { const c = new ClonerComponent(); c.count.value = n; return c },
+  linear: (sx: number, sy = 0)      => { const l = new LinearDistributor(); l.spacingX.value = sx; l.spacingY.value = sy; return l },
+  radial: (r: number)               => { const d = new RadialDistributor(); d.radius.value = r; return d },
+  grid:   (cols:number,sx:number,sy:number) => { const g = new GridDistributor(); g.columns.value=cols; g.spacingX.value=sx; g.spacingY.value=sy; return g },
+  phyl:   (spread: number)          => { const p = new PhyllotaxisDistributor(); p.spread.value = spread; return p },
+  spiral: (aStep:number,rStep:number)=> { const s = new SpiralDistributor(); s.angleStep.value=aStep; s.radiusStep.value=rStep; return s },
+  ramp:   (ch:string,s:number,e:number) => { const r = new RampSignal(); r.output.value=ch; r.start.value=s; r.end.value=e; return r },
+  wave:   (ch:string,amp:number,off:number) => { const w = new WaveSignal(); w.output.value=ch; w.amplitude.value=amp; w.offset.value=off; return w },
+  noise:  (ch:string,lo:number,hi:number) => { const n = new NoiseSignal(); n.output.value=ch; n.min.value=lo; n.max.value=hi; return n },
+  opacity:(v: number)               => { const o = new OpacityComponent(); o.opacity.value = v; return o },
+  opacityCh:(ch: string)            => { const o = new OpacityComponent(); o.opacity.channel = ch; return o },
+  stroke: (color:string,w:number)   => { const s = new StrokeComponent(); s.color.value=color; s.width.value=w; return s },
+  shadow: (blur:number,color:string)=> { const s = new ShadowComponent(); s.blur.value=blur; s.color.value=color; return s },
+  mirror: (axis:string,keep:boolean)=> { const m = new MirrorComponent(); m.axis.value=axis as never; m.keepOriginal.value=keep; return m },
+  gradient:(ss:number,se:number,os:number,oe:number) => {
+    const g = new GradientMutator(); g.scaleStart.value=ss; g.scaleEnd.value=se; g.opacityStart.value=os; g.opacityEnd.value=oe; return g
+  },
+  scaleCh:(ch:string) => { const t = new TransformComponent(); t.scale.channel=ch; t.position.value={x:0,y:0}; return t },
+}
+
+const BLUE = '#60a5fa'
+
+const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
   {
     category: 'Bundles',
     items: [
-      { label: 'Sunflower',      create: createSunflowerBundle },
-      { label: 'Galaxy Arm',     create: createGalaxyBundle },
-      { label: 'Color Gradient', create: createColorGradientBundle },
-      { label: 'Color Wave',     create: createColorWaveBundle },
-      { label: 'Opacity Fade',   create: createOpacityFadeBundle },
-      { label: 'Scale Fade',     create: createScaleFadeBundle },
+      {
+        label: 'Sunflower', create: createSunflowerBundle,
+        preview: () => [
+          pv.circle(3), pv.cloner(34), pv.phyl(7),
+          pv.ramp('sf-h',40,200), pv.ramp('sf-s',90,60), pv.ramp('sf-l',55,40),
+          pv.fillHSLCh('sf-h','sf-s','sf-l'),
+        ],
+      },
+      {
+        label: 'Galaxy Arm', create: createGalaxyBundle,
+        preview: () => [
+          pv.circle(2), pv.cloner(20), pv.spiral(28,2),
+          pv.ramp('gx-scale',1.4,0.2), pv.ramp('gx-h',200,280),
+          pv.fillHCh('gx-h'), pv.opacityCh('gx-scale'), pv.scaleCh('gx-scale'),
+        ],
+      },
+      {
+        label: 'Color Gradient', create: createColorGradientBundle,
+        preview: () => [
+          pv.circle(5), pv.cloner(6), pv.linear(9),
+          pv.ramp('g-h',217,330), pv.ramp('g-s',91,81), pv.ramp('g-l',60,60),
+          pv.fillHSLCh('g-h','g-s','g-l'),
+        ],
+      },
+      {
+        label: 'Color Wave', create: createColorWaveBundle,
+        preview: () => [
+          pv.circle(5), pv.cloner(7), pv.linear(8),
+          pv.wave('hue',180,180), pv.fillHCh('hue'),
+        ],
+      },
+      {
+        label: 'Opacity Fade', create: createOpacityFadeBundle,
+        preview: () => [
+          pv.circle(5), pv.cloner(5), pv.linear(10),
+          pv.ramp('fade',1,0), pv.fill(BLUE), pv.opacityCh('fade'),
+        ],
+      },
+      {
+        label: 'Scale Fade', create: createScaleFadeBundle,
+        preview: () => [
+          pv.circle(5), pv.cloner(5), pv.radial(18),
+          pv.ramp('sf',1.4,0.1), pv.fill(BLUE), pv.scaleCh('sf'),
+        ],
+      },
     ],
   },
   {
     category: 'Modifiers',
     items: [
-      { label: 'Cloner',   create: () => new ClonerComponent() },
-      { label: 'Mirror',   create: () => new MirrorComponent() },
-      { label: 'Gradient', create: () => new GradientMutator() },
+      {
+        label: 'Cloner', create: () => new ClonerComponent(),
+        preview: () => [pv.circle(5), pv.cloner(6), pv.radial(18), pv.fill(BLUE)],
+      },
+      {
+        label: 'Mirror', create: () => new MirrorComponent(),
+        preview: () => [pv.rect(8,10), pv.cloner(3), pv.linear(12), pv.mirror('X',true), pv.fill(BLUE)],
+      },
+      {
+        label: 'Gradient', create: () => new GradientMutator(),
+        preview: () => [pv.circle(5), pv.cloner(6), pv.radial(18), pv.gradient(1.5,0.2,1,0), pv.fill(BLUE)],
+      },
     ],
   },
   {
     category: 'Distributors',
     items: [
-      { label: 'Radial',       create: () => new RadialDistributor() },
-      { label: 'Linear',       create: () => new LinearDistributor() },
-      { label: 'Grid',         create: () => new GridDistributor() },
-      { label: 'Phyllotaxis',  create: () => new PhyllotaxisDistributor() },
-      { label: 'Spiral',       create: () => new SpiralDistributor() },
+      {
+        label: 'Radial', create: () => new RadialDistributor(),
+        preview: () => [pv.circle(4), pv.cloner(8), pv.radial(18), pv.fill(BLUE)],
+      },
+      {
+        label: 'Linear', create: () => new LinearDistributor(),
+        preview: () => [pv.circle(4), pv.cloner(5), pv.linear(10), pv.fill(BLUE)],
+      },
+      {
+        label: 'Grid', create: () => new GridDistributor(),
+        preview: () => [pv.circle(3), pv.cloner(9), pv.grid(3,14,14), pv.fill(BLUE)],
+      },
+      {
+        label: 'Phyllotaxis', create: () => new PhyllotaxisDistributor(),
+        preview: () => [pv.circle(3), pv.cloner(34), pv.phyl(7), pv.fill(BLUE)],
+      },
+      {
+        label: 'Spiral', create: () => new SpiralDistributor(),
+        preview: () => [pv.circle(2.5), pv.cloner(22), pv.spiral(28,2), pv.fill(BLUE)],
+      },
     ],
   },
   {
     category: 'Signals',
     items: [
-      { label: 'Ramp',  create: () => new RampSignal() },
-      { label: 'Wave',  create: () => new WaveSignal() },
-      { label: 'Noise', create: () => new NoiseSignal() },
+      {
+        label: 'Ramp', create: () => new RampSignal(),
+        preview: () => [pv.circle(5), pv.cloner(6), pv.linear(9), pv.ramp('hue',0,360), pv.fillHCh('hue')],
+      },
+      {
+        label: 'Wave', create: () => new WaveSignal(),
+        preview: () => [pv.circle(5), pv.cloner(8), pv.linear(7), pv.wave('hue',180,180), pv.fillHCh('hue')],
+      },
+      {
+        label: 'Noise', create: () => new NoiseSignal(),
+        preview: () => [pv.circle(5), pv.cloner(7), pv.linear(8), pv.noise('hue',0,360), pv.fillHCh('hue')],
+      },
     ],
   },
   {
     category: 'Styles',
     items: [
-      { label: 'Fill',    create: () => new FillComponent() },
-      { label: 'Stroke',  create: () => new StrokeComponent() },
-      { label: 'Shadow',  create: () => new ShadowComponent() },
-      { label: 'Opacity', create: () => new OpacityComponent() },
+      {
+        label: 'Fill', create: () => new FillComponent(),
+        preview: () => [pv.circle(18), pv.fill('#e74c3c')],
+      },
+      {
+        label: 'Stroke', create: () => new StrokeComponent(),
+        preview: () => [pv.circle(16), pv.fill('#1e1e1e'), pv.stroke(BLUE, 2)],
+      },
+      {
+        label: 'Shadow', create: () => new ShadowComponent(),
+        preview: () => [pv.circle(14), pv.fill(BLUE), pv.shadow(10, BLUE)],
+      },
+      {
+        label: 'Opacity', create: () => new OpacityComponent(),
+        preview: () => [pv.circle(18), pv.fill(BLUE), pv.opacity(0.35)],
+      },
     ],
   },
 ]
@@ -317,7 +437,7 @@ function AddComponentMenu({ onAdd, onClose }: {
   const catItems = activeCat ? COMPONENT_CATEGORIES.find(c => c.category === activeCat)?.items ?? [] : []
   const onPage2 = !!activeCat && !q
 
-  const row = (label: string, onClick: () => void, hint?: string) => (
+  const listRow = (label: string, onClick: () => void, hint?: string) => (
     <div
       key={label}
       onClick={onClick}
@@ -327,6 +447,19 @@ function AddComponentMenu({ onAdd, onClose }: {
     >
       <span>{label}</span>
       {hint && <span style={{ color: '#555', fontSize: 11 }}>{hint}</span>}
+    </div>
+  )
+
+  const gridCard = (item: MenuItem, onClick: () => void) => (
+    <div
+      key={item.label}
+      onClick={onClick}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '6px 4px', cursor: 'pointer', borderRadius: 4 }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#2a2a2a')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      <PreviewCanvas components={item.preview()} size={52} />
+      <span style={{ fontSize: 10, color: '#999', textAlign: 'center', lineHeight: 1.2, maxWidth: 64 }}>{item.label}</span>
     </div>
   )
 
@@ -388,20 +521,24 @@ function AddComponentMenu({ onAdd, onClose }: {
           transition: 'transform 0.16s ease',
         }}>
 
-          <div style={{ width: '50%', maxHeight: 260, overflowY: 'auto' }}>
+          {/* Page 1 — categories or search results */}
+          <div style={{ width: '50%', maxHeight: 300, overflowY: 'auto' }}>
             {filtered ? (
               filtered.length === 0
                 ? <div style={{ padding: '10px 14px', fontSize: 12, color: '#555' }}>No results</div>
-                : filtered.map(({ label, create, category }) => row(label, () => onAdd(create), category))
+                : filtered.map(item => listRow(item.label, () => onAdd(item.create), item.category))
             ) : (
               COMPONENT_CATEGORIES.map(({ category, items }) =>
-                row(category, () => setActiveCat(category), `${items.length} ›`)
+                listRow(category, () => setActiveCat(category), `${items.length} ›`)
               )
             )}
           </div>
 
-          <div style={{ width: '50%', maxHeight: 260, overflowY: 'auto' }}>
-            {catItems.map(({ label, create }) => row(label, () => onAdd(create)))}
+          {/* Page 2 — live preview grid */}
+          <div style={{ width: '50%', maxHeight: 300, overflowY: 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, padding: '6px 8px' }}>
+              {catItems.map(item => gridCard(item, () => onAdd(item.create)))}
+            </div>
           </div>
 
         </div>
