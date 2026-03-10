@@ -88,10 +88,7 @@ export function createSunflowerBundle(): Component[] {
   fill.saturation.channel = 'sf-s'
   fill.lightness.channel  = 'sf-l'
 
-  const transform = new TransformComponent()
-  transform.position.value = { x: 400, y: 300 }
-
-  return tag([cloner, dist, rampH, rampS, rampL, fill, transform], makeGroupId(), 'Sunflower')
+  return tag([cloner, dist, rampH, rampS, rampL, fill], makeGroupId(), 'Sunflower')
 }
 
 // Galaxy Arm: Cloner(60) + Spiral + scale fade + opacity fade + color wave
@@ -128,7 +125,7 @@ export function createGalaxyBundle(): Component[] {
 
   const transform = new TransformComponent()
   transform.scale.channel  = 'gx-scale'
-  transform.position.value = { x: 400, y: 300 }
+  transform.position.value = { x: 0, y: 0 }   // zero offset — entity's own Transform handles position
 
   return tag([cloner, dist, rampScale, rampOpacity, rampH, fill, opacity, transform], makeGroupId(), 'Galaxy Arm')
 }
@@ -141,7 +138,8 @@ export function createScaleFadeBundle(): Component[] {
   ramp.end.value    = 0.15
 
   const transform = new TransformComponent()
-  transform.scale.channel = 'scale-fade'
+  transform.scale.channel  = 'scale-fade'
+  transform.position.value = { x: 0, y: 0 }   // zero offset — entity's own Transform handles position
 
   return tag([ramp, transform], makeGroupId(), 'Scale Fade')
 }
