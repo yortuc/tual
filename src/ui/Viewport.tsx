@@ -69,7 +69,7 @@ function drawTextItem(ctx: CanvasRenderingContext2D, item: DrawItem): void {
   ctx.restore()
 }
 
-function drawSelectionOutline(ctx: CanvasRenderingContext2D, item: DrawItem, zoom: number): void {
+function drawSelectionOutline(ctx: CanvasRenderingContext2D, item: DrawItem, zoom: number, dashOffset: number): void {
   const { transform, shape } = item
   ctx.save()
   ctx.translate(transform.x, transform.y)
@@ -78,6 +78,7 @@ function drawSelectionOutline(ctx: CanvasRenderingContext2D, item: DrawItem, zoo
   ctx.strokeStyle = '#4a90d9'
   ctx.lineWidth = 1 / zoom
   ctx.setLineDash([4 / zoom, 3 / zoom])
+  ctx.lineDashOffset = -dashOffset / zoom
   ctx.beginPath()
   if (shape.type === 'rect') {
     ctx.rect(-shape.width / 2, -shape.height / 2, shape.width, shape.height)
@@ -103,6 +104,8 @@ export function Viewport() {
   const gizmoHandleDragRef = useRef<GizmoHandleDragState | null>(null)
   const mouseDownHitRef = useRef<number | null>(null)
   const hasDraggedRef = useRef(false)
+  const dashOffsetRef = useRef(0)
+  const rafRef = useRef<number | null>(null)
   const [zoomPct, setZoomPct] = useState(100)
   const [cursor, setCursor] = useState('default')
 
@@ -141,7 +144,8 @@ export function Viewport() {
     ctx.save()
     ctx.translate(panX, panY)
     ctx.scale(zoom, zoom)
-    for (const item of selectedItems) drawSelectionOutline(ctx, item, zoom)
+    const dashOffset = dashOffsetRef.current
+    for (const item of selectedItems) drawSelectionOutline(ctx, item, zoom, dashOffset)
     ctx.restore()
 
     // Gizmos (screen-space)
@@ -157,7 +161,7 @@ export function Viewport() {
     let itemCount = 0
     for (const comp of components) {
       if (comp.renderGizmo) {
-        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, itemCount })
+        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, itemCount, dashOffset })
       }
       if (comp.stage === PipelineStage.Shape) {
         itemCount += 1
@@ -216,9 +220,26 @@ export function Viewport() {
     ro.observe(canvas.parentElement!)
     handleResize()
 
-    const u1 = eventBus.on('world:changed', draw)
-    const u2 = eventBus.on('editor:selection-changed', draw)
-    return () => { ro.disconnect(); u1(); u2() }
+    const startAnim = () => {
+      if (rafRef.current !== null) return
+      const tick = () => {
+        dashOffsetRef.current = (dashOffsetRef.current + 0.3) % 100
+        draw()
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    const stopAnim = () => {
+      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+    }
+
+    const u1 = eventBus.on('world:changed', () => { if (rafRef.current === null) draw() })
+    const u2 = eventBus.on('editor:selection-changed', () => {
+      if (editorStore.selectedEntityId !== null) startAnim()
+      else { stopAnim(); draw() }
+    })
+
+    return () => { ro.disconnect(); u1(); u2(); stopAnim() }
   }, [draw])
 
   // Scroll wheel zoom

@@ -16,7 +16,7 @@ export class RectComponent extends Component {
   private _dragStartWidth  = 0
   private _dragStartHeight = 0
 
-  renderGizmo({ ctx, screenOrigins, zoom, hasModifier }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, hasModifier, dashOffset }: GizmoContext): void {
     const w = this.width.value * zoom
     const h = this.height.value * zoom
     const hs = 10
@@ -36,12 +36,14 @@ export class RectComponent extends Component {
     ctx.lineWidth = 1
     ctx.globalAlpha = 0.65
     ctx.setLineDash([5, 4])
+    ctx.lineDashOffset = -dashOffset
 
     for (const { x, y } of screenOrigins) {
       ctx.strokeRect(x - w / 2, y - h / 2, w, h)
     }
 
     ctx.setLineDash([])
+    ctx.lineDashOffset = 0
 
     // Corner handles
     ctx.globalAlpha = 1

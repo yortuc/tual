@@ -10,13 +10,14 @@ export class MirrorComponent extends Component {
   axis = new EnumProp('Axis', { default: 'X', options: ['X', 'Y', 'Both'] })
   keepOriginal = new BoolProp('Keep Original', { default: true })
 
-  renderGizmo({ ctx, screenOrigins }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, dashOffset }: GizmoContext): void {
     const REACH = 220
     ctx.save()
     ctx.strokeStyle = this.gizmoColor
     ctx.lineWidth = 1
     ctx.globalAlpha = 0.65
     ctx.setLineDash([6, 5])
+    ctx.lineDashOffset = -dashOffset
 
     for (const { x, y } of screenOrigins) {
       ctx.beginPath()

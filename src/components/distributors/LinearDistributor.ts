@@ -9,7 +9,7 @@ export class LinearDistributor extends Component {
   spacingX = new NumberProp('Spacing X', { default: 80, min: -1000, max: 1000 })
   spacingY = new NumberProp('Spacing Y', { default: 0,  min: -1000, max: 1000 })
 
-  renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, itemCount, dashOffset }: GizmoContext): void {
     const n = itemCount
     if (n === 0) return
     ctx.save()
@@ -24,11 +24,13 @@ export class LinearDistributor extends Component {
 
       // Dashed line from first to last item
       ctx.setLineDash([5, 4])
+      ctx.lineDashOffset = -dashOffset
       ctx.beginPath()
       ctx.moveTo(x, y)
       ctx.lineTo(x + (n - 1) * sx, y + (n - 1) * sy)
       ctx.stroke()
       ctx.setLineDash([])
+      ctx.lineDashOffset = 0
 
       // Direction arrow at end
       const ex = x + (n - 1) * sx

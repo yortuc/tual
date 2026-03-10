@@ -13,7 +13,7 @@ export class CircleComponent extends Component {
 
   private _dragStartRadius = 0
 
-  renderGizmo({ ctx, screenOrigins, zoom, hasModifier }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, hasModifier, dashOffset }: GizmoContext): void {
     const hs = 10
 
     ctx.save()
@@ -34,6 +34,7 @@ export class CircleComponent extends Component {
     ctx.lineWidth = 1
     ctx.globalAlpha = 0.65
     ctx.setLineDash([5, 4])
+    ctx.lineDashOffset = -dashOffset
 
     for (const { x, y } of screenOrigins) {
       const r = this.radius.value * zoom
@@ -43,6 +44,7 @@ export class CircleComponent extends Component {
     }
 
     ctx.setLineDash([])
+    ctx.lineDashOffset = 0
 
     // Radius handle (3 o'clock)
     ctx.globalAlpha = 1

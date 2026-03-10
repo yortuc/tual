@@ -29,7 +29,8 @@
       "Bash(git add src/__tests__/components/modifiers.test.ts src/__tests__/ecs/World.test.ts src/__tests__/integration/pipeline.test.ts src/components/modifiers/GridClonerComponent.ts src/components/modifiers/LinearClonerComponent.ts src/components/modifiers/RadialClonerComponent.ts src/ecs/Component.ts src/editor/componentRegistry.ts src/editor/demo.ts src/editor/presets.ts src/ui/Inspector.tsx src/ui/Viewport.tsx src/components/distributors/ src/components/modifiers/ClonerComponent.ts)",
       "Bash(git commit -m \"$\\(cat <<'EOF'\nSeparate Cloner from Distributor — cleaner pipeline architecture\n\nClonerComponent \\(Modifier\\) purely multiplies items; RadialDistributor,\nLinearDistributor, and GridDistributor \\(Distributor stage\\) handle spatial\npositioning by index. Inspector warns when Cloner has no Distributor.\nViewport tracks itemCount progressively so distributor gizmos know how\nmany dots to render. All presets, demo, and tests updated.\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npx tsc --noEmit 2>&1 && npm test -- --run 2>&1 | tail -8)",
-      "Bash(npx tsc --noEmit 2>&1 && npm test -- --run 2>&1)"
+      "Bash(npx tsc --noEmit 2>&1 && npm test -- --run 2>&1)",
+      "Bash(grep -n \"setLineDash\" /Users/yortuc/kiro-sessions/ces-designer/src/components/**/*.ts 2>/dev/null || grep -rn \"setLineDash\" /Users/yortuc/kiro-sessions/ces-designer/src/components/)"
     ]
   }
 }

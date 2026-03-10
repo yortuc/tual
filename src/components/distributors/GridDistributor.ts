@@ -10,7 +10,7 @@ export class GridDistributor extends Component {
   spacingX = new NumberProp('Spacing X', { default: 80, min: 0,  max: 1000 })
   spacingY = new NumberProp('Spacing Y', { default: 80, min: 0,  max: 1000 })
 
-  renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, itemCount, dashOffset }: GizmoContext): void {
     const n = itemCount
     if (n === 0) return
     const cols = Math.max(1, Math.round(this.columns.value))
@@ -27,8 +27,10 @@ export class GridDistributor extends Component {
 
       // Dashed bounding rect
       ctx.setLineDash([5, 4])
+      ctx.lineDashOffset = -dashOffset
       ctx.strokeRect(x - sx / 2, y - sy / 2, (cols - 1) * sx + sx, (rows - 1) * sy + sy)
       ctx.setLineDash([])
+      ctx.lineDashOffset = 0
 
       // Dot at each grid position
       for (let i = 0; i < n; i++) {

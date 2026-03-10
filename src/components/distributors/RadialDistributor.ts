@@ -13,7 +13,7 @@ export class RadialDistributor extends Component {
 
   private _dragStartRadius = 0
 
-  renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
+  renderGizmo({ ctx, screenOrigins, zoom, itemCount, dashOffset }: GizmoContext): void {
     const n = itemCount
     ctx.save()
     ctx.strokeStyle = this.gizmoColor
@@ -26,10 +26,12 @@ export class RadialDistributor extends Component {
 
       // Dashed radius circle
       ctx.setLineDash([5, 4])
+      ctx.lineDashOffset = -dashOffset
       ctx.beginPath()
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.stroke()
       ctx.setLineDash([])
+      ctx.lineDashOffset = 0
 
       // Direction arrow at angle 0
       ctx.globalAlpha = 0.9

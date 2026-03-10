@@ -31,6 +31,7 @@ export interface GizmoContext {
   zoom: number                                 // convert world sizes → screen: size * zoom
   hasModifier: boolean                         // true if entity has any Modifier-stage component
   itemCount: number                            // number of items entering this component
+  dashOffset: number                           // animated dash offset in screen pixels
 }
 
 export interface GizmoHandle {
