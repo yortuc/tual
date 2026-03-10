@@ -24,10 +24,15 @@ import { NoiseSignal } from '../components/signals/NoiseSignal'
 import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
+import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
+import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import {
   createColorGradientBundle,
   createOpacityFadeBundle,
   createColorWaveBundle,
+  createSunflowerBundle,
+  createGalaxyBundle,
+  createScaleFadeBundle,
 } from '../editor/bundles'
 
 // ---- TL (top-level) item model ----
@@ -62,9 +67,12 @@ const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: 
   {
     category: 'Bundles',
     items: [
+      { label: 'Sunflower',      create: createSunflowerBundle },
+      { label: 'Galaxy Arm',     create: createGalaxyBundle },
       { label: 'Color Gradient', create: createColorGradientBundle },
-      { label: 'Opacity Fade',   create: createOpacityFadeBundle },
       { label: 'Color Wave',     create: createColorWaveBundle },
+      { label: 'Opacity Fade',   create: createOpacityFadeBundle },
+      { label: 'Scale Fade',     create: createScaleFadeBundle },
     ],
   },
   {
@@ -78,9 +86,11 @@ const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: 
   {
     category: 'Distributors',
     items: [
-      { label: 'Radial', create: () => new RadialDistributor() },
-      { label: 'Linear', create: () => new LinearDistributor() },
-      { label: 'Grid',   create: () => new GridDistributor() },
+      { label: 'Radial',       create: () => new RadialDistributor() },
+      { label: 'Linear',       create: () => new LinearDistributor() },
+      { label: 'Grid',         create: () => new GridDistributor() },
+      { label: 'Phyllotaxis',  create: () => new PhyllotaxisDistributor() },
+      { label: 'Spiral',       create: () => new SpiralDistributor() },
     ],
   },
   {

@@ -2,6 +2,10 @@ import { RampSignal } from '../components/signals/RampSignal'
 import { WaveSignal } from '../components/signals/WaveSignal'
 import { FillComponent } from '../components/styles/FillComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
+import { TransformComponent } from '../components/styles/TransformComponent'
+import { ClonerComponent } from '../components/modifiers/ClonerComponent'
+import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
+import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import type { Component } from '../ecs/Component'
 
 function makeGroupId(): string {
@@ -53,6 +57,93 @@ export function createOpacityFadeBundle(): Component[] {
   opacity.opacity.channel = 'fade'
 
   return tag([ramp, opacity], makeGroupId(), 'Opacity Fade')
+}
+
+// Sunflower: Cloner(89) + Phyllotaxis + Color Gradient (HSL ramps)
+// 89 is a Fibonacci number — gives the cleanest sunflower spiral count
+export function createSunflowerBundle(): Component[] {
+  const cloner = new ClonerComponent()
+  cloner.count.value = 89
+
+  const dist = new PhyllotaxisDistributor()
+  dist.spread.value = 22
+
+  const rampH = new RampSignal()
+  rampH.output.value = 'sf-h'
+  rampH.start.value  = 40
+  rampH.end.value    = 200
+
+  const rampS = new RampSignal()
+  rampS.output.value = 'sf-s'
+  rampS.start.value  = 90
+  rampS.end.value    = 60
+
+  const rampL = new RampSignal()
+  rampL.output.value = 'sf-l'
+  rampL.start.value  = 55
+  rampL.end.value    = 40
+
+  const fill = new FillComponent()
+  fill.hue.channel        = 'sf-h'
+  fill.saturation.channel = 'sf-s'
+  fill.lightness.channel  = 'sf-l'
+
+  const transform = new TransformComponent()
+  transform.position.value = { x: 400, y: 300 }
+
+  return tag([cloner, dist, rampH, rampS, rampL, fill, transform], makeGroupId(), 'Sunflower')
+}
+
+// Galaxy Arm: Cloner(60) + Spiral + scale fade + opacity fade + color wave
+export function createGalaxyBundle(): Component[] {
+  const cloner = new ClonerComponent()
+  cloner.count.value = 60
+
+  const dist = new SpiralDistributor()
+  dist.angleStep.value  = 25
+  dist.radiusStep.value = 10
+
+  const rampScale = new RampSignal()
+  rampScale.output.value = 'gx-scale'
+  rampScale.start.value  = 1.4
+  rampScale.end.value    = 0.2
+
+  const rampOpacity = new RampSignal()
+  rampOpacity.output.value = 'gx-fade'
+  rampOpacity.start.value  = 1
+  rampOpacity.end.value    = 0.1
+
+  const rampH = new RampSignal()
+  rampH.output.value = 'gx-h'
+  rampH.start.value  = 200
+  rampH.end.value    = 280
+
+  const fill = new FillComponent()
+  fill.hue.channel        = 'gx-h'
+  fill.saturation.value   = 80
+  fill.lightness.value    = 65
+
+  const opacity = new OpacityComponent()
+  opacity.opacity.channel = 'gx-fade'
+
+  const transform = new TransformComponent()
+  transform.scale.channel  = 'gx-scale'
+  transform.position.value = { x: 400, y: 300 }
+
+  return tag([cloner, dist, rampScale, rampOpacity, rampH, fill, opacity, transform], makeGroupId(), 'Galaxy Arm')
+}
+
+// Scale Fade: RampSignal drives scale 1→0.1 per clone via Transform
+export function createScaleFadeBundle(): Component[] {
+  const ramp = new RampSignal()
+  ramp.output.value = 'scale-fade'
+  ramp.start.value  = 1.5
+  ramp.end.value    = 0.15
+
+  const transform = new TransformComponent()
+  transform.scale.channel = 'scale-fade'
+
+  return tag([ramp, transform], makeGroupId(), 'Scale Fade')
 }
 
 // WaveSignal outputs hue (offset=180, amplitude=180) + FillComponent reads it

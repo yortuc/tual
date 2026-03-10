@@ -132,7 +132,7 @@ describe('TransformComponent', () => {
   it('offsets position of all items', () => {
     const t = new TransformComponent()
     t.position.value = { x: 150, y: 250 }
-    const result = t.process!([makeItem(), makeItem()])
+    const { items: result } = t.processState!({ items: [makeItem(), makeItem()], channels: {} })
     result.forEach(item => {
       expect(item.transform.x).toBe(150)
       expect(item.transform.y).toBe(250)
@@ -142,23 +142,23 @@ describe('TransformComponent', () => {
   it('adds rotation in radians', () => {
     const t = new TransformComponent()
     t.rotation.value = 90
-    const [result] = t.process!([makeItem()])
+    const { items: [result] } = t.processState!({ items: [makeItem()], channels: {} })
     expect(result.transform.rotation).toBeCloseTo(Math.PI / 2)
   })
 
-  it('multiplies scale', () => {
+  it('multiplies scale uniformly', () => {
     const t = new TransformComponent()
-    t.scale.value = { x: 2, y: 3 }
-    const [result] = t.process!([makeItem()])
+    t.scale.value = 2
+    const { items: [result] } = t.processState!({ items: [makeItem()], channels: {} })
     expect(result.transform.scaleX).toBe(2)
-    expect(result.transform.scaleY).toBe(3)
+    expect(result.transform.scaleY).toBe(2)
   })
 
   it('accumulates with existing item transform', () => {
     const t = new TransformComponent()
     t.position.value = { x: 100, y: 100 }
     const item = makeItem({ transform: { x: 50, y: 50, rotation: 0, scaleX: 1, scaleY: 1 } })
-    const [result] = t.process!([item])
+    const { items: [result] } = t.processState!({ items: [item], channels: {} })
     expect(result.transform.x).toBe(150)
     expect(result.transform.y).toBe(150)
   })

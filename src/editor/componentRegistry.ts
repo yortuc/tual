@@ -17,6 +17,8 @@ import { NoiseSignal } from '../components/signals/NoiseSignal'
 import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
+import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
+import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 
 export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   GlowComponent:      () => new GlowComponent(),
@@ -34,7 +36,9 @@ export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   RampSignal:         () => new RampSignal(),
   WaveSignal:         () => new WaveSignal(),
   NoiseSignal:        () => new NoiseSignal(),
-  RadialDistributor:  () => new RadialDistributor(),
-  LinearDistributor:  () => new LinearDistributor(),
-  GridDistributor:    () => new GridDistributor(),
+  RadialDistributor:       () => new RadialDistributor(),
+  LinearDistributor:       () => new LinearDistributor(),
+  GridDistributor:         () => new GridDistributor(),
+  PhyllotaxisDistributor:  () => new PhyllotaxisDistributor(),
+  SpiralDistributor:       () => new SpiralDistributor(),
 }

@@ -30,6 +30,12 @@ export class NumberProp extends Prop<number> {
     return this.value
   }
 
+  // Safely coerce — guards against old Vec2 `{ x, y }` values stored in scenes
+  deserialize(v: number): void {
+    const n = Number(v)
+    if (!isNaN(n)) this.value = n
+  }
+
   renderEditor(onChange: (v: number) => void, onCommit?: (v: number) => void): React.ReactElement {
     return <NumberEditor prop={this} onChange={onChange} onCommit={onCommit} />
   }
