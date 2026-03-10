@@ -16,19 +16,6 @@ function tag(components: Component[], id: string, label: string): Component[] {
   return components
 }
 
-// RampSignal outputs hue (0→360) + FillComponent reads it
-export function createColorGradientBundle(): Component[] {
-  const ramp = new RampSignal()
-  ramp.output.value = 'hue'
-  ramp.start.value = 0
-  ramp.end.value = 360
-
-  const fill = new FillComponent()
-  fill.hue.channel = 'hue'
-
-  return tag([ramp, fill], makeGroupId(), 'Color Gradient')
-}
-
 // RampSignal outputs fade (1→0) + OpacityComponent reads it
 export function createOpacityFadeBundle(): Component[] {
   const ramp = new RampSignal()

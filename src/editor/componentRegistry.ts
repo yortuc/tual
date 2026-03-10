@@ -5,6 +5,7 @@ import { CircleComponent } from '../components/shapes/CircleComponent'
 import { TextComponent } from '../components/shapes/TextComponent'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import { FillComponent } from '../components/styles/FillComponent'
+import { ColorRampComponent } from '../components/styles/ColorRampComponent'
 import { StrokeComponent } from '../components/styles/StrokeComponent'
 import { ShadowComponent } from '../components/styles/ShadowComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
@@ -25,6 +26,7 @@ export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   TextComponent:      () => new TextComponent(),
   TransformComponent: () => new TransformComponent(),
   FillComponent:      () => new FillComponent(),
+  ColorRampComponent: () => new ColorRampComponent(),
   StrokeComponent:    () => new StrokeComponent(),
   ShadowComponent:    () => new ShadowComponent(),
   OpacityComponent:   () => new OpacityComponent(),

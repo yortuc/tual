@@ -18,6 +18,7 @@ import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
 import { GradientMutator } from '../components/modifiers/GradientMutator'
+import { ColorRampComponent } from '../components/styles/ColorRampComponent'
 import { RampSignal } from '../components/signals/RampSignal'
 import { WaveSignal } from '../components/signals/WaveSignal'
 import { NoiseSignal } from '../components/signals/NoiseSignal'
@@ -25,7 +26,6 @@ import { RadialDistributor } from '../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
 import {
-  createColorGradientBundle,
   createOpacityFadeBundle,
   createColorWaveBundle,
 } from '../editor/bundles'
@@ -62,9 +62,8 @@ const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: 
   {
     category: 'Bundles',
     items: [
-      { label: 'Color Gradient', create: createColorGradientBundle },
-      { label: 'Opacity Fade',   create: createOpacityFadeBundle },
-      { label: 'Color Wave',     create: createColorWaveBundle },
+      { label: 'Opacity Fade', create: createOpacityFadeBundle },
+      { label: 'Color Wave',   create: createColorWaveBundle },
     ],
   },
   {
@@ -94,7 +93,8 @@ const COMPONENT_CATEGORIES: { category: string; items: { label: string; create: 
   {
     category: 'Styles',
     items: [
-      { label: 'Fill',    create: () => new FillComponent() },
+      { label: 'Fill',       create: () => new FillComponent() },
+      { label: 'Color Ramp', create: () => new ColorRampComponent() },
       { label: 'Stroke',  create: () => new StrokeComponent() },
       { label: 'Shadow',  create: () => new ShadowComponent() },
       { label: 'Opacity', create: () => new OpacityComponent() },
