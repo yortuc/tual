@@ -71,7 +71,7 @@ function PropRow({ prop, onPropChanged }: { prop: Prop<unknown>; onPropChanged?:
 
   const onCommit = (v: unknown) => {
     if (startValueRef.current !== v) {
-      historyStore.record(new SetPropCommand(prop, startValueRef.current, v, `Change ${prop.label}`))
+      historyStore.record(new SetPropCommand(prop, startValueRef.current, v, `Change ${prop.label}`, onPropChanged))
     }
     startValueRef.current = prop.value
   }

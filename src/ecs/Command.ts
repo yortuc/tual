@@ -17,10 +17,11 @@ export class SetPropCommand<T = unknown>  {
     private prev: T,
     private next: T,
     readonly label: string,
+    private sideEffect?: () => void,
   ) {}
 
-  execute(): void { this.prop.value = this.next; eventBus.emit('world:changed') }
-  undo():    void { this.prop.value = this.prev; eventBus.emit('world:changed') }
+  execute(): void { this.prop.value = this.next; this.sideEffect?.(); eventBus.emit('world:changed') }
+  undo():    void { this.prop.value = this.prev; this.sideEffect?.(); eventBus.emit('world:changed') }
 }
 
 // ---- Multiple commands as one ----
