@@ -116,7 +116,7 @@ describe('World', () => {
       world.addComponent(id, new RectComponent())
       world.addComponent(id, fill)
       const items = world.runPipeline(id)
-      expect(items[0].style.fill).toMatch(/^hsl\(/)
+      expect(items[0].style.fill).toMatch(/^#[0-9a-f]{6}$/)
     })
 
     it('processes modifier stage between shape and style', () => {

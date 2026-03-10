@@ -35,7 +35,7 @@ describe('Pipeline integration', () => {
     expect(item.shape.type).toBe('rect')
     expect(item.transform.x).toBe(400)
     expect(item.transform.y).toBe(300)
-    expect(item.style.fill).toMatch(/^hsl\(/)
+    expect(item.style.fill).toMatch(/^#[0-9a-f]{6}$/)
   })
 
   it('cloner + distributor + transform: clones are positioned relative to entity origin', () => {
@@ -101,7 +101,7 @@ describe('Pipeline integration', () => {
     const items = world.runPipeline(id)
     expect(items).toHaveLength(5)
     items.forEach(item => {
-      expect(item.style.fill).toMatch(/^hsl\(/)
+      expect(item.style.fill).toMatch(/^#[0-9a-f]{6}$/)
       expect(item.style.opacity).toBe(0.7)
     })
   })
@@ -155,7 +155,7 @@ describe('Pipeline integration', () => {
     expect(items).toHaveLength(6)
 
     items.forEach(item => {
-      expect(item.style.fill).toMatch(/^hsl\(/)
+      expect(item.style.fill).toMatch(/^#[0-9a-f]{6}$/)
       expect(item.style.stroke?.color).toBe('#fff')
       expect(item.style.stroke?.width).toBe(2)
       expect(item.style.shadow?.blur).toBe(10)

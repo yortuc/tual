@@ -30,7 +30,7 @@ describe('FillComponent', () => {
     const fill = new FillComponent()
     fill.setColor('#abc123')
     const result = fill.processState!(makeState([makeItem(), makeItem()])).items
-    result.forEach(item => expect(item.style.fill).toMatch(/^hsl\(/))
+    result.forEach(item => expect(item.style.fill).toMatch(/^#[0-9a-f]{6}$/))
   })
 
   it('does not mutate original items', () => {
@@ -67,8 +67,8 @@ describe('FillComponent', () => {
       makeItem({ channels: { h: 120 } }),
     ]
     const result = fill.processState!(makeState(items)).items
-    expect(result[0].style.fill).toBe('hsl(0, 100%, 50%)')
-    expect(result[1].style.fill).toBe('hsl(120, 100%, 50%)')
+    expect(result[0].style.fill).toBe('#ff0000')
+    expect(result[1].style.fill).toBe('#00ff00')
   })
 })
 

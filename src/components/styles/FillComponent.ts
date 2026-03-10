@@ -45,7 +45,7 @@ export class FillComponent extends Component {
         const l = this.lightness.resolve(merged)
         return {
           ...item,
-          style: { ...item.style, fill: `hsl(${h}, ${s}%, ${l}%)` },
+          style: { ...item.style, fill: hslToHex(h, s, l) },
         }
       }),
     }
