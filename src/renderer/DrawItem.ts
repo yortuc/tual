@@ -14,6 +14,7 @@ export type ShapeData =
   | { type: 'rect'; width: number; height: number }
   | { type: 'circle'; radius: number }
   | { type: 'text'; content: string; fontSize: number; fontFamily: string }
+  | { type: 'stamp' }
 
 export interface DrawStyle {
   fill?: string
@@ -27,4 +28,5 @@ export interface DrawItem {
   transform: DrawTransform
   style: DrawStyle
   channels: Record<string, number>  // per-item scalar bag for signal-driven props
+  children?: DrawItem[]             // set by StampComponent — treated as a single atom downstream
 }

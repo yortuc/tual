@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import { StampComponent } from '../../components/modifiers/StampComponent'
 import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { World } from '../../ecs/World'
+import { CircleComponent } from '../../components/shapes/CircleComponent'
+import { FillComponent } from '../../components/styles/FillComponent'
 import { RadialDistributor } from '../../components/distributors/RadialDistributor'
 import { LinearDistributor } from '../../components/distributors/LinearDistributor'
 import { GridDistributor } from '../../components/distributors/GridDistributor'
@@ -360,5 +364,59 @@ describe('MirrorComponent', () => {
     mirror.axis.value = 'Both'
     mirror.keepOriginal.value = false
     expect(mirror.process!([makeItem()])).toHaveLength(2)
+  })
+})
+
+describe('StampComponent', () => {
+  it('is in Modifier stage', () => {
+    expect(new StampComponent().stage).toBe(PipelineStage.Modifier)
+  })
+
+  it('collapses N items into a single stamp atom', () => {
+    const stamp = new StampComponent()
+    const result = stamp.process!([makeItem(10, 0), makeItem(20, 0), makeItem(30, 0)])
+    expect(result).toHaveLength(1)
+    expect(result[0].shape.type).toBe('stamp')
+    expect(result[0].children).toHaveLength(3)
+  })
+
+  it('returns empty array when given no items', () => {
+    expect(new StampComponent().process!([])).toHaveLength(0)
+  })
+
+  it('stamp + cloner produces N stamp atoms', () => {
+    const stamp = new StampComponent()
+    const cloner = new ClonerComponent()
+    cloner.count.value = 4
+    const stamped = stamp.process!([makeItem(5, 0), makeItem(-5, 0)])
+    const cloned  = cloner.process!(stamped)
+    expect(cloned).toHaveLength(4)
+    cloned.forEach(item => {
+      expect(item.shape.type).toBe('stamp')
+      expect(item.children).toHaveLength(2)
+    })
+  })
+
+  it('expandStamps composes parent translate onto children', () => {
+    // Circle × 2 (linear, spacing 20) → Stamp → Cloner(3) → Linear(spacing 60)
+    // Expect 6 leaf circles; each group of 2 is offset by 60 from the next.
+    const w = new World()
+    const id = w.createEntity()
+    const circle = new CircleComponent(); circle.radius.value = 5
+    const innerCloner = new ClonerComponent(); innerCloner.count.value = 2
+    const innerDist = new LinearDistributor(); innerDist.spacingX.value = 20; innerDist.spacingY.value = 0
+    const stampComp = new StampComponent()
+    const outerCloner = new ClonerComponent(); outerCloner.count.value = 3
+    const outerDist = new LinearDistributor(); outerDist.spacingX.value = 60; outerDist.spacingY.value = 0
+    const fill = new FillComponent(); fill.setColor('#ff0000')
+    for (const c of [circle, innerCloner, innerDist, stampComp, outerCloner, outerDist, fill])
+      w.addComponent(id, c)
+    const items = w.runPipeline(id)
+    // 3 stamp groups × 2 children = 6 leaf items, all circles, no stamp atoms
+    expect(items).toHaveLength(6)
+    items.forEach(item => expect(item.shape.type).toBe('circle'))
+    // Within each group the two circles are 20 apart; groups are 60 apart
+    const xs = items.map(i => i.transform.x).sort((a, b) => a - b)
+    expect(xs[2] - xs[0]).toBeCloseTo(60, 1)
   })
 })

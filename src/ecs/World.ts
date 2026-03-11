@@ -1,6 +1,30 @@
 import { Component, PipelineStage, GIZMO_PALETTE, type PipelineState } from './Component'
-import type { DrawItem } from '../renderer/DrawItem'
+import type { DrawItem, DrawTransform } from '../renderer/DrawItem'
 import { eventBus } from './EventBus'
+
+function composeTransforms(parent: DrawTransform, child: DrawTransform): DrawTransform {
+  const cos = Math.cos(parent.rotation)
+  const sin = Math.sin(parent.rotation)
+  const cx = child.x * parent.scaleX
+  const cy = child.y * parent.scaleY
+  return {
+    x:        parent.x + cx * cos - cy * sin,
+    y:        parent.y + cx * sin + cy * cos,
+    rotation: parent.rotation + child.rotation,
+    scaleX:   parent.scaleX * child.scaleX,
+    scaleY:   parent.scaleY * child.scaleY,
+  }
+}
+
+function expandStamps(items: DrawItem[]): DrawItem[] {
+  return items.flatMap(item => {
+    if (item.shape.type !== 'stamp' || !item.children) return [item]
+    return expandStamps(item.children.map(child => ({
+      ...child,
+      transform: composeTransforms(item.transform, child.transform),
+    })))
+  })
+}
 
 export class World {
   private entities = new Map<number, Component[]>()
@@ -107,7 +131,7 @@ export class World {
       }
     }
 
-    return state.items
+    return expandStamps(state.items)
   }
 }
 

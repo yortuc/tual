@@ -21,6 +21,7 @@ import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
 import { GradientMutator } from '../components/modifiers/GradientMutator'
+import { StampComponent } from '../components/modifiers/StampComponent'
 import { RampSignal } from '../components/signals/RampSignal'
 import { WaveSignal } from '../components/signals/WaveSignal'
 import { NoiseSignal } from '../components/signals/NoiseSignal'
@@ -96,6 +97,7 @@ const pv = {
   stroke: (color:string,w:number)   => { const s = new StrokeComponent(); s.color.value=color; s.width.value=w; return s },
   shadow: (blur:number,color:string)=> { const s = new ShadowComponent(); s.blur.value=blur; s.color.value=color; return s },
   mirror: (axis:string,keep:boolean)=> { const m = new MirrorComponent(); m.axis.value=axis as never; m.keepOriginal.value=keep; return m },
+  stamp: ()                          => new StampComponent(),
   gradient:(ss:number,se:number,os:number,oe:number) => {
     const g = new GradientMutator(); g.scaleStart.value=ss; g.scaleEnd.value=se; g.opacityStart.value=os; g.opacityEnd.value=oe; return g
   },
@@ -180,6 +182,10 @@ const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
       {
         label: 'Gradient', create: () => new GradientMutator(),
         preview: () => [pv.circle(5), pv.cloner(6), pv.radial(18), pv.gradient(1.5,0.2,1,0), pv.fill(BLUE)],
+      },
+      {
+        label: 'Stamp', create: () => new StampComponent(),
+        preview: () => [pv.circle(2), pv.cloner(8), pv.rose(4,10), pv.fill(BLUE), pv.stamp(), pv.cloner(3), pv.radial(22)],
       },
     ],
   },

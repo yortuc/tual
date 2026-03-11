@@ -11,6 +11,7 @@ import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
 import { MirrorComponent } from '../components/modifiers/MirrorComponent'
 import { GradientMutator } from '../components/modifiers/GradientMutator'
+import { StampComponent } from '../components/modifiers/StampComponent'
 import { RampSignal } from '../components/signals/RampSignal'
 import { WaveSignal } from '../components/signals/WaveSignal'
 import { NoiseSignal } from '../components/signals/NoiseSignal'
@@ -35,6 +36,7 @@ export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   ClonerComponent:    () => new ClonerComponent(),
   MirrorComponent:    () => new MirrorComponent(),
   GradientMutator:    () => new GradientMutator(),
+  StampComponent:     () => new StampComponent(),
   RampSignal:         () => new RampSignal(),
   WaveSignal:         () => new WaveSignal(),
   NoiseSignal:        () => new NoiseSignal(),
