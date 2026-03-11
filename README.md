@@ -1,41 +1,54 @@
 # tual
 
-A procedural / parametric graphics editor built on an Entity-Component-System (ECS) architecture.
+A procedural / parametric graphics editor built on an Entity-Component-System (ECS) architecture. Built for engineers and technically-minded people who enjoy thinking in algorithms — a creative tool where every visual is a _description_ of how to produce it, not just what it looks like.
 
 ![tual screenshot](docs/tual_2.png)
 
-Each shape in the scene is an **entity**. Its visual properties — geometry, transformations, cloning patterns, styling — are defined by **components** that are stacked and processed in a deterministic pipeline. The result is a non-destructive, composable design tool where every visual is a description of _how_ to produce it, not just _what_ it looks like.
+## How it works
 
-## Design philosophy
+Each shape in the scene is an **entity**. Its appearance is defined by **components** stacked in a pipeline. Add a Circle, clone it 89 times, distribute the clones in a phyllotaxis spiral, drive the color with a ramp signal — the result is a sunflower. Change one number and the whole structure updates.
 
-### ECS pipeline
+### Pipeline
 
-Components are ordered into four pipeline stages that run sequentially per entity:
+Components run in the order they are added. The conventional order is:
 
 ```
-Shape → Modifier → Style → Effect
+Shape → Modifier → Distributor → Signal → Style
 ```
 
-- **Shape** — generates the initial set of `DrawItem`s (rect, circle, text, …)
-- **Modifier** — transforms or multiplies the item array (cloners, mirrors, …)
-- **Style** — applies visual properties to every item (fill, stroke, opacity, shadow, …)
-- **Effect** — post-processing passes (planned)
+- **Shape** — generates the initial `DrawItem`s (rect, circle, text)
+- **Modifier** — multiplies or transforms the item array (Cloner, Mirror, Gradient)
+- **Distributor** — positions each clone in space (Radial, Linear, Grid, Phyllotaxis, Spiral, Rose, Lissajous)
+- **Signal** — writes per-clone channel values that Style components can read (Ramp, Wave, Noise)
+- **Style** — applies visual properties to every item, optionally driven by channels (Fill, Stroke, Opacity, Shadow, Transform)
 
-An entity with no Shape component produces no output regardless of what else is attached. Multiple Shape components produce multiple base items. Modifiers downstream multiply all items they receive. Style components apply to every item in the array — a single Fill component colors all clones.
+A single Fill component with its hue bound to a Ramp channel colors every clone differently. A TransformComponent with its scale bound to a Ramp channel makes each clone grow or shrink along the distribution.
 
-This staging model means composition is predictable: you can reason about what each component does independently of the others.
+### Channel system
 
-### Components are data
+Signals write named values into each item's `channels` map. Style props can be bound to a channel name — when they resolve, they read from the item's channel first and fall back to the literal prop value. This is what makes per-clone animation possible without any special-casing: the same Fill component either uses a static color or reads a per-item hue, depending on whether a channel is bound.
 
-Each component owns typed `Prop` instances (`NumberProp`, `ColorProp`, `Vec2Prop`, …). These are the only mutable state. The pipeline is a pure function over component props — running it twice with the same props returns the same result. This makes undo/redo, serialization, and testing straightforward.
+### Bundles
 
-### Gizmos and handles
+Pre-wired groups of components that produce a specific effect in one click. Every bundle member shares a `groupId` so they move, reorder, and delete atomically in the Inspector.
 
-Components can optionally render a canvas overlay (`renderGizmo`) and expose interactive drag handles (`getGizmoHandles`). Gizmos are drawn in screen space after the main scene render, so they remain constant size regardless of zoom. Handles are hit-tested on mousedown before entity selection, so a component can intercept interaction and edit its own props directly — for example, dragging a corner handle on a rect resizes width/height, dragging the radius handle on a radial cloner adjusts its radius.
+| Bundle | What it does |
+|--------|-------------|
+| Sunflower | Circle × 89, Phyllotaxis, HSL color ramp — the classic golden-angle pattern |
+| Galaxy Arm | Circle × 60, Spiral, blue→violet hue ramp, opacity + scale fade |
+| Breathing Rings | Cloner × 14, concentric scale ramp (0.15→1.8), teal→violet color, opacity fade |
+| Color Gradient | 3 Ramp signals (H/S/L) + Fill — blue→pink sweep across any cloner |
+| Color Wave | Wave signal driving hue — oscillating rainbow across clones |
+| Opacity Fade | Ramp signal driving opacity 1→0 |
+| Scale Fade | Ramp signal driving uniform scale 1.5→0.15 |
 
-### Scene vs. entities
+### Gizmos
 
-The scene background and other global properties live in a `SceneStore` singleton, separate from the entity pipeline. This keeps the pipeline pure and avoids treating global properties as a special-cased entity.
+Components can render an animated canvas overlay (`renderGizmo`). Line-based gizmos (Spiral, Rose, Lissajous, Linear) use marching-ants dash animation to convey direction. Dot-based gizmos (Phyllotaxis, Radial, Grid) are static. Gizmos are drawn in screen space after the main render so they stay constant size at any zoom level. Drag handles let you edit props directly on the canvas — resize a rect by dragging its corner, adjust a radial cloner's radius by dragging the ring.
+
+### Scene
+
+Global properties (background color, glow effect) live in a `SceneStore` separate from the entity pipeline, keeping the pipeline pure.
 
 ## Components
 
@@ -49,25 +62,49 @@ The scene background and other global properties live in a `SceneStore` singleto
 ### Modifiers
 | Component | Props |
 |-----------|-------|
-| Radial Cloner | count, radius |
-| Linear Cloner | count, spacing X/Y |
-| Grid Cloner | count, columns, spacing X/Y |
+| Cloner | count |
 | Mirror | axis (X/Y), keep original |
+| Gradient | scale start/end, opacity start/end |
+
+### Distributors
+| Component | Props |
+|-----------|-------|
+| Radial | count, radius |
+| Linear | spacing X/Y |
+| Grid | columns, spacing X/Y |
+| Phyllotaxis | spread — golden-angle spiral (nature's packing algorithm) |
+| Spiral | angle step, radius step — Archimedean spiral |
+| Rose | petals (k), radius — rose curve r = cos(k·θ) |
+| Lissajous | freq X/Y, phase shift, radius X/Y — parametric Lissajous figure |
+
+### Signals
+| Component | Output |
+|-----------|--------|
+| Ramp | linear / eased ramp from start to end across N items |
+| Wave | sine wave with amplitude and phase offset |
+| Noise | per-item random value in a min–max range |
 
 ### Styles
 | Component | Props |
 |-----------|-------|
-| Fill | color |
+| Fill | color (H/S/L, each bindable to a channel) |
 | Stroke | color, width |
-| Opacity | opacity |
+| Opacity | opacity (channel-bindable) |
 | Shadow | blur, offset X/Y, color |
-| Transform | position (X/Y) |
+| Transform | position X/Y, rotation, scale (channel-bindable) |
+
+### Scene
+| Component | Props |
+|-----------|-------|
+| Background | color |
+| Glow | strength, radius — WebGL bloom post-process |
 
 ## Stack
 
 - **TypeScript** — strict, no `any`
 - **React** — UI shell (inspector, scene tree, top bar) — not involved in rendering
-- **Canvas 2D API** — all drawing, gizmos, and hit testing
+- **WebGL** — main scene renderer with bloom post-processing
+- **Canvas 2D** — gizmos, selection outlines, text rendering
 - **Vite** + **Vitest** — build and unit/integration tests
 
 ## Development
