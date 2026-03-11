@@ -4,7 +4,6 @@ import { FillComponent } from '../components/styles/FillComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
-import { CircleComponent } from '../components/shapes/CircleComponent'
 import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import type { Component } from '../ecs/Component'
@@ -145,12 +144,10 @@ export function createScaleFadeBundle(): Component[] {
   return tag([ramp, transform], makeGroupId(), 'Scale Fade')
 }
 
-// Breathing Rings: concentric circles at origin, scale ramp expands outward,
+// Breathing Rings: concentric copies at origin, scale ramp expands outward,
 // color sweeps teal→violet, opacity fades so outer rings are ghostly.
+// Works on whatever shape the entity already has — no shape included.
 export function createBreathingRingsBundle(): Component[] {
-  const circle = new CircleComponent()
-  circle.radius.value = 20
-
   const cloner = new ClonerComponent()
   cloner.count.value = 14
 
@@ -182,7 +179,7 @@ export function createBreathingRingsBundle(): Component[] {
   transform.scale.channel  = 'br-scale'
   transform.position.value = { x: 0, y: 0 }
 
-  return tag([circle, cloner, rampScale, rampH, rampFade, fill, opacity, transform], makeGroupId(), 'Breathing Rings')
+  return tag([cloner, rampScale, rampH, rampFade, fill, opacity, transform], makeGroupId(), 'Breathing Rings')
 }
 
 // WaveSignal outputs hue (offset=180, amplitude=180) + FillComponent reads it
