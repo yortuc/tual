@@ -22,6 +22,7 @@ import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDi
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import { RoseDistributor } from '../components/distributors/RoseDistributor'
 import { LissajousDistributor } from '../components/distributors/LissajousDistributor'
+import { IFSDistributor } from '../components/distributors/IFSDistributor'
 
 export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   GlowComponent:      () => new GlowComponent(),
@@ -47,4 +48,5 @@ export const COMPONENT_REGISTRY: Record<string, () => Component> = {
   SpiralDistributor:       () => new SpiralDistributor(),
   RoseDistributor:         () => new RoseDistributor(),
   LissajousDistributor:    () => new LissajousDistributor(),
+  IFSDistributor:          () => new IFSDistributor(),
 }

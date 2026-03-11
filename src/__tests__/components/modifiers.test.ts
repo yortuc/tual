@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { StampComponent } from '../../components/modifiers/StampComponent'
 import { ClonerComponent } from '../../components/modifiers/ClonerComponent'
+import { IFSDistributor } from '../../components/distributors/IFSDistributor'
 import { World } from '../../ecs/World'
 import { CircleComponent } from '../../components/shapes/CircleComponent'
 import { FillComponent } from '../../components/styles/FillComponent'
@@ -418,5 +419,80 @@ describe('StampComponent', () => {
     // Within each group the two circles are 20 apart; groups are 60 apart
     const xs = items.map(i => i.transform.x).sort((a, b) => a - b)
     expect(xs[2] - xs[0]).toBeCloseTo(60, 1)
+  })
+})
+
+describe('IFSDistributor', () => {
+  it('is in Distributor stage', () => {
+    expect(new IFSDistributor().stage).toBe(PipelineStage.Distributor)
+  })
+
+  it('Sierpinski depth=1 produces 3 items', () => {
+    const ifs = new IFSDistributor()
+    ifs.preset.value = 'Sierpinski' as never
+    ifs.depth.value = 1
+    const result = ifs.process!([makeItem()])
+    expect(result).toHaveLength(3)
+  })
+
+  it('Sierpinski depth=2 produces 9 items', () => {
+    const ifs = new IFSDistributor()
+    ifs.preset.value = 'Sierpinski' as never
+    ifs.depth.value = 2
+    const result = ifs.process!([makeItem()])
+    expect(result).toHaveLength(9)
+  })
+
+  it('Cantor depth=1 produces 4 items', () => {
+    const ifs = new IFSDistributor()
+    ifs.preset.value = 'Cantor' as never
+    ifs.depth.value = 1
+    const result = ifs.process!([makeItem()])
+    expect(result).toHaveLength(4)
+  })
+
+  it('Tree depth=3 produces 8 items', () => {
+    const ifs = new IFSDistributor()
+    ifs.preset.value = 'Tree' as never
+    ifs.depth.value = 3
+    const result = ifs.process!([makeItem()])
+    expect(result).toHaveLength(8)
+  })
+
+  it('output items never exceed MAX_ITEMS regardless of depth', () => {
+    const ifs = new IFSDistributor()
+    ifs.preset.value = 'Snowflake' as never
+    ifs.depth.value = 8  // would be 6^8 = 1.7M without cap
+    const result = ifs.process!([makeItem()])
+    expect(result.length).toBeLessThanOrEqual(2000)
+  })
+
+  it('returns empty for empty input', () => {
+    expect(new IFSDistributor().process!([])).toHaveLength(0)
+  })
+
+  it('output items are all leaf shapes, no stamp atoms', () => {
+    const ifs = new IFSDistributor()
+    ifs.depth.value = 3
+    const result = ifs.process!([makeItem()])
+    result.forEach(item => expect(item.shape.type).not.toBe('stamp'))
+  })
+
+  it('spread scales output positions', () => {
+    const ifs1 = new IFSDistributor()
+    ifs1.preset.value = 'Sierpinski' as never
+    ifs1.depth.value = 1
+    ifs1.spread.value = 100
+
+    const ifs2 = new IFSDistributor()
+    ifs2.preset.value = 'Sierpinski' as never
+    ifs2.depth.value = 1
+    ifs2.spread.value = 200
+
+    const r1 = ifs1.process!([makeItem()])
+    const r2 = ifs2.process!([makeItem()])
+    const maxR1 = Math.max(...r1.map(i => Math.abs(i.transform.x)))
+    const maxR2 = Math.max(...r2.map(i => Math.abs(i.transform.x)))
+    expect(maxR2).toBeCloseTo(maxR1 * 2, 1)
   })
 })

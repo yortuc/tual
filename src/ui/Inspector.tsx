@@ -32,6 +32,7 @@ import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDi
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import { RoseDistributor } from '../components/distributors/RoseDistributor'
 import { LissajousDistributor } from '../components/distributors/LissajousDistributor'
+import { IFSDistributor } from '../components/distributors/IFSDistributor'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import {
   createColorGradientBundle,
@@ -89,6 +90,7 @@ const pv = {
   spiral: (aStep:number,rStep:number)=> { const s = new SpiralDistributor(); s.angleStep.value=aStep; s.radiusStep.value=rStep; return s },
   rose:   (k:number,r:number)        => { const d = new RoseDistributor(); d.petals.value=k; d.radius.value=r; return d },
   liss:   (fx:number,fy:number,rx:number,ry:number,ph:number) => { const d = new LissajousDistributor(); d.freqX.value=fx; d.freqY.value=fy; d.radiusX.value=rx; d.radiusY.value=ry; d.phaseShift.value=ph; return d },
+  ifs:    (preset:string,depth:number,spread:number) => { const d = new IFSDistributor(); d.preset.value=preset as never; d.depth.value=depth; d.spread.value=spread; return d },
   ramp:   (ch:string,s:number,e:number) => { const r = new RampSignal(); r.output.value=ch; r.start.value=s; r.end.value=e; return r },
   wave:   (ch:string,amp:number,off:number) => { const w = new WaveSignal(); w.output.value=ch; w.amplitude.value=amp; w.offset.value=off; return w },
   noise:  (ch:string,lo:number,hi:number) => { const n = new NoiseSignal(); n.output.value=ch; n.min.value=lo; n.max.value=hi; return n },
@@ -219,6 +221,10 @@ const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
       {
         label: 'Lissajous', create: () => new LissajousDistributor(),
         preview: () => [pv.circle(2), pv.cloner(30), pv.liss(3,2,22,18,90), pv.fill(BLUE)],
+      },
+      {
+        label: 'IFS', create: () => new IFSDistributor(),
+        preview: () => [pv.circle(1.5), pv.ifs('Sierpinski',4,22), pv.fill(BLUE)],
       },
     ],
   },
