@@ -117,10 +117,11 @@ export function Viewport() {
     const { zoom, panX, panY } = viewRef.current
 
     // --- WebGL: render scene ---
-    renderer.clear(sceneStore.getBackground())
+    const bg = sceneStore.getBackground()
+    renderer.clear(bg)
     const allItems = world.getEntityIds().flatMap(id => world.runPipeline(id))
     const glowComp = sceneStore.getComponents().find(c => c instanceof GlowComponent) as GlowComponent | undefined
-    renderer.render(allItems, zoom, panX, panY, glowComp ? { strength: glowComp.strength.value, radius: glowComp.radius.value } : undefined)
+    renderer.render(allItems, zoom, panX, panY, glowComp ? { strength: glowComp.strength.value, radius: glowComp.radius.value } : undefined, bg)
 
     // --- Canvas2D: gizmos, selection outlines, text ---
     const ctx = gizmoCanvas.getContext('2d')!

@@ -413,6 +413,7 @@ export class WebGLRenderer {
     items: DrawItem[],
     zoom: number, panX: number, panY: number,
     strength: number, radius: number,
+    bg: string,
   ): void {
     const { gl } = this
     const fbos = this.ensureBloomFBOs()
@@ -425,7 +426,8 @@ export class WebGLRenderer {
     // 1. Render full scene to main FBO
     gl.bindFramebuffer(gl.FRAMEBUFFER, main.fbo)
     gl.viewport(0, 0, W, H)
-    gl.clearColor(0, 0, 0, 1)
+    const [br, bg2, bb] = parseHex(bg)
+    gl.clearColor(br, bg2, bb, 1)
     gl.clear(gl.COLOR_BUFFER_BIT)
     this.renderPasses(items)
 
@@ -465,13 +467,14 @@ export class WebGLRenderer {
     items: DrawItem[],
     zoom: number, panX: number, panY: number,
     bloom?: { strength: number; radius: number },
+    bg = '#141414',
   ): void {
     const { gl } = this
     const W = (gl.canvas as HTMLCanvasElement).width
     const H = (gl.canvas as HTMLCanvasElement).height
 
     if (bloom && bloom.strength > 0) {
-      this.renderWithBloom(items, zoom, panX, panY, bloom.strength, bloom.radius)
+      this.renderWithBloom(items, zoom, panX, panY, bloom.strength, bloom.radius, bg)
       return
     }
 
