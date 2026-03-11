@@ -4,6 +4,7 @@ import { FillComponent } from '../components/styles/FillComponent'
 import { OpacityComponent } from '../components/styles/OpacityComponent'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import { ClonerComponent } from '../components/modifiers/ClonerComponent'
+import { CircleComponent } from '../components/shapes/CircleComponent'
 import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import type { Component } from '../ecs/Component'
@@ -142,6 +143,46 @@ export function createScaleFadeBundle(): Component[] {
   transform.position.value = { x: 0, y: 0 }   // zero offset — entity's own Transform handles position
 
   return tag([ramp, transform], makeGroupId(), 'Scale Fade')
+}
+
+// Breathing Rings: concentric circles at origin, scale ramp expands outward,
+// color sweeps teal→violet, opacity fades so outer rings are ghostly.
+export function createBreathingRingsBundle(): Component[] {
+  const circle = new CircleComponent()
+  circle.radius.value = 20
+
+  const cloner = new ClonerComponent()
+  cloner.count.value = 14
+
+  // No distributor — all items stack at origin, differentiated only by scale
+  const rampScale = new RampSignal()
+  rampScale.output.value = 'br-scale'
+  rampScale.start.value  = 0.15
+  rampScale.end.value    = 1.8
+
+  const rampH = new RampSignal()
+  rampH.output.value = 'br-h'
+  rampH.start.value  = 180
+  rampH.end.value    = 300
+
+  const rampFade = new RampSignal()
+  rampFade.output.value = 'br-fade'
+  rampFade.start.value  = 0.9
+  rampFade.end.value    = 0.1
+
+  const fill = new FillComponent()
+  fill.hue.channel        = 'br-h'
+  fill.saturation.value   = 75
+  fill.lightness.value    = 60
+
+  const opacity = new OpacityComponent()
+  opacity.opacity.channel = 'br-fade'
+
+  const transform = new TransformComponent()
+  transform.scale.channel  = 'br-scale'
+  transform.position.value = { x: 0, y: 0 }
+
+  return tag([circle, cloner, rampScale, rampH, rampFade, fill, opacity, transform], makeGroupId(), 'Breathing Rings')
 }
 
 // WaveSignal outputs hue (offset=180, amplitude=180) + FillComponent reads it

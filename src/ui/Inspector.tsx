@@ -29,6 +29,8 @@ import { LinearDistributor } from '../components/distributors/LinearDistributor'
 import { GridDistributor } from '../components/distributors/GridDistributor'
 import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDistributor'
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
+import { RoseDistributor } from '../components/distributors/RoseDistributor'
+import { LissajousDistributor } from '../components/distributors/LissajousDistributor'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import {
   createColorGradientBundle,
@@ -37,6 +39,7 @@ import {
   createSunflowerBundle,
   createGalaxyBundle,
   createScaleFadeBundle,
+  createBreathingRingsBundle,
 } from '../editor/bundles'
 
 // ---- TL (top-level) item model ----
@@ -83,6 +86,8 @@ const pv = {
   grid:   (cols:number,sx:number,sy:number) => { const g = new GridDistributor(); g.columns.value=cols; g.spacingX.value=sx; g.spacingY.value=sy; return g },
   phyl:   (spread: number)          => { const p = new PhyllotaxisDistributor(); p.spread.value = spread; return p },
   spiral: (aStep:number,rStep:number)=> { const s = new SpiralDistributor(); s.angleStep.value=aStep; s.radiusStep.value=rStep; return s },
+  rose:   (k:number,r:number)        => { const d = new RoseDistributor(); d.petals.value=k; d.radius.value=r; return d },
+  liss:   (fx:number,fy:number,rx:number,ry:number,ph:number) => { const d = new LissajousDistributor(); d.freqX.value=fx; d.freqY.value=fy; d.radiusX.value=rx; d.radiusY.value=ry; d.phaseShift.value=ph; return d },
   ramp:   (ch:string,s:number,e:number) => { const r = new RampSignal(); r.output.value=ch; r.start.value=s; r.end.value=e; return r },
   wave:   (ch:string,amp:number,off:number) => { const w = new WaveSignal(); w.output.value=ch; w.amplitude.value=amp; w.offset.value=off; return w },
   noise:  (ch:string,lo:number,hi:number) => { const n = new NoiseSignal(); n.output.value=ch; n.min.value=lo; n.max.value=hi; return n },
@@ -148,6 +153,17 @@ const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
           pv.ramp('sf',1.4,0.1), pv.fill(BLUE), pv.scaleCh('sf'),
         ],
       },
+      {
+        label: 'Breathing Rings', create: createBreathingRingsBundle,
+        preview: () => {
+          const fill = new FillComponent(); fill.hue.channel = 'br-h'; fill.saturation.value = 75; fill.lightness.value = 60
+          return [
+            pv.circle(14), pv.cloner(10),
+            pv.ramp('br-scale',0.15,1.8), pv.ramp('br-h',180,300), pv.ramp('br-fade',0.9,0.1),
+            fill, pv.opacityCh('br-fade'), pv.scaleCh('br-scale'),
+          ]
+        },
+      },
     ],
   },
   {
@@ -189,6 +205,14 @@ const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
       {
         label: 'Spiral', create: () => new SpiralDistributor(),
         preview: () => [pv.circle(2.5), pv.cloner(22), pv.spiral(28,2), pv.fill(BLUE)],
+      },
+      {
+        label: 'Rose', create: () => new RoseDistributor(),
+        preview: () => [pv.circle(2), pv.cloner(40), pv.rose(5,22), pv.fill(BLUE)],
+      },
+      {
+        label: 'Lissajous', create: () => new LissajousDistributor(),
+        preview: () => [pv.circle(2), pv.cloner(30), pv.liss(3,2,22,18,90), pv.fill(BLUE)],
       },
     ],
   },
