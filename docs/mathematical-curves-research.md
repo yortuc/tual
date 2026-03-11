@@ -1,8 +1,8 @@
-# Mathematical Curves & Patterns for CES Designer
+# Mathematical Curves & Patterns for tual
 ## Research Document: Distributors and Shape Components
 
 **Date:** 2026-03-11
-**Purpose:** Candidate mathematical curves for new Distributor and Shape components in CES Designer, targeting engineers and technically-minded users.
+**Purpose:** Candidate mathematical curves for new Distributor and Shape components in tual, targeting engineers and technically-minded users.
 
 ---
 
