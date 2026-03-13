@@ -224,7 +224,7 @@ const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
       },
       {
         label: 'IFS', create: () => new IFSDistributor(),
-        preview: () => [pv.circle(1.5), pv.ifs('Sierpinski',4,22), pv.fill(BLUE)],
+        preview: () => [pv.circle(20), pv.ifs('Sierpinski',3,40), pv.fill(BLUE)],
       },
     ],
   },
