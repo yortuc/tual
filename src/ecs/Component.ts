@@ -30,6 +30,7 @@ export interface GizmoContext {
   screenOrigins: { x: number; y: number }[]    // screen space — draw gizmo at each position
   zoom: number                                 // convert world sizes → screen: size * zoom
   hasModifier: boolean                         // true if entity has any Modifier-stage component
+  hasDistributor: boolean                      // true if entity has any Distributor-stage component
   itemCount: number                            // number of items entering this component
   dashOffset: number                           // animated dash offset in screen pixels
 }
@@ -73,6 +74,11 @@ export abstract class Component {
   // Called by Inspector immediately after any prop value changes.
   // Override to sync dependent props (e.g. color ↔ H/S/L).
   onPropChanged?(_prop: Prop<unknown>): void
+
+  // Self-serialization hooks for components with data beyond standard Props
+  // (e.g. variable-length transform arrays). Called by Serializer.
+  serializeExtra?(): Record<string, unknown>
+  deserializeExtra?(data: Record<string, unknown>): void
 
   getProps(): Array<[string, Prop<unknown>]> {
     return Object.entries(this).filter(

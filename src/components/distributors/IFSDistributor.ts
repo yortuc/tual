@@ -1,29 +1,27 @@
-import { Component, PipelineStage, type GizmoContext } from '../../ecs/Component'
+import { Component, PipelineStage } from '../../ecs/Component'
 import type { DrawItem } from '../../renderer/DrawItem'
 import { NumberProp } from '../../props/NumberProp'
-import { EnumProp } from '../../props/EnumProp'
 
 // ── IFS transform definition ─────────────────────────────────────────────────
 
-interface IFSTransform {
-  scale:    number   // uniform scale applied to position and item scale
-  rotation: number   // degrees — local rotation of this branch
-  offsetX:  number   // normalized offset (-1..1), multiplied by spread at runtime
+export interface IFSTransform {
+  scale:    number   // uniform scale
+  rotation: number   // degrees
+  offsetX:  number   // normalized (-1..1), multiplied by spread at runtime
   offsetY:  number
 }
 
 // ── Named presets ─────────────────────────────────────────────────────────────
 
-type Preset = 'Sierpinski' | 'Cantor' | 'Tree' | 'Snowflake'
+export type IFSPreset = 'Sierpinski' | 'Cantor' | 'Tree' | 'Snowflake'
 
-const PRESETS: Record<Preset, IFSTransform[]> = {
-  // Three copies at triangle corners — the canonical IFS fractal
+export const IFS_PRESETS: Record<IFSPreset, IFSTransform[]> = {
+  // Three copies at triangle corners — apex up, bounding box centered at origin
   Sierpinski: [
     { scale: 0.5, rotation: 0, offsetX: -0.5, offsetY:  0.5 },
     { scale: 0.5, rotation: 0, offsetX:  0.5, offsetY:  0.5 },
     { scale: 0.5, rotation: 0, offsetX:  0,   offsetY: -0.5 },
   ],
-
   // Four copies at square corners — 2D Cantor dust
   Cantor: [
     { scale: 1/3, rotation: 0, offsetX: -1/3, offsetY: -1/3 },
@@ -31,13 +29,11 @@ const PRESETS: Record<Preset, IFSTransform[]> = {
     { scale: 1/3, rotation: 0, offsetX: -1/3, offsetY:  1/3 },
     { scale: 1/3, rotation: 0, offsetX:  1/3, offsetY:  1/3 },
   ],
-
   // Two branches angled symmetrically — binary fractal tree
   Tree: [
     { scale: 0.6, rotation: -35, offsetX: -0.35, offsetY: -0.55 },
     { scale: 0.6, rotation:  35, offsetX:  0.35, offsetY: -0.55 },
   ],
-
   // Six copies at hexagonal positions — snowflake / honeycomb
   Snowflake: [
     { scale: 0.38, rotation: 0, offsetX:  0,     offsetY: -0.62 },
@@ -51,7 +47,7 @@ const PRESETS: Record<Preset, IFSTransform[]> = {
 
 const MAX_ITEMS = 2000
 
-// ── Helper: apply one IFS transform to one DrawItem ──────────────────────────
+// ── Helper ────────────────────────────────────────────────────────────────────
 
 function applyTransform(
   item: DrawItem,
@@ -69,11 +65,11 @@ function applyTransform(
     ...item,
     transform: {
       ...item.transform,
-      x:      px * cos - py * sin + ox,
-      y:      px * sin + py * cos + oy,
+      x:        px * cos - py * sin + ox,
+      y:        px * sin + py * cos + oy,
       rotation: item.transform.rotation + rot,
-      scaleX: item.transform.scaleX * scale,
-      scaleY: item.transform.scaleY * scale,
+      scaleX:   item.transform.scaleX * scale,
+      scaleY:   item.transform.scaleY * scale,
     },
   }
 }
@@ -84,91 +80,104 @@ export class IFSDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'IFS'
 
-  preset     = new EnumProp('Preset',    { default: 'Sierpinski', options: ['Sierpinski', 'Cantor', 'Tree', 'Snowflake'] })
-  depth      = new NumberProp('Depth',   { default: 4, min: 1, max: 8,   step: 1  })
-  spread     = new NumberProp('Spread',  { default: 80, min: 5, max: 400, step: 1  })
-  rotation   = new NumberProp('Rotation',{ default: 0, min: -180, max: 180, step: 1 })
+  depth    = new NumberProp('Depth',    { default: 4, min: 1, max: 8,   step: 1 })
+  spread   = new NumberProp('Spread',   { default: 80, min: 5, max: 400, step: 1 })
+  rotation = new NumberProp('Rotation', { default: 0, min: -180, max: 180, step: 1 })
 
-  private getPresetTransforms(): IFSTransform[] {
-    return PRESETS[this.preset.value as Preset] ?? PRESETS.Sierpinski
+  // Variable-length transform array — NOT a Prop, managed manually
+  transforms: IFSTransform[] = [...IFS_PRESETS.Sierpinski.map(t => ({ ...t }))]
+
+  // ── Preset management ──────────────────────────────────────────────────────
+
+  loadPreset(name: IFSPreset): void {
+    this.transforms = IFS_PRESETS[name].map(t => ({ ...t }))
   }
 
-  // Clamp depth so output never exceeds MAX_ITEMS
+  addTransform(): void {
+    this.transforms.push({ scale: 0.5, rotation: 0, offsetX: 0, offsetY: 0 })
+  }
+
+  removeTransform(index: number): void {
+    if (this.transforms.length > 1) {
+      this.transforms.splice(index, 1)
+    }
+  }
+
+  // ── Self-serialization ─────────────────────────────────────────────────────
+
+  serializeExtra(): Record<string, unknown> {
+    return { transforms: this.transforms.map(t => ({ ...t })) }
+  }
+
+  deserializeExtra(data: Record<string, unknown>): void {
+    if (Array.isArray(data.transforms) && data.transforms.length > 0) {
+      this.transforms = (data.transforms as IFSTransform[]).map(t => ({ ...t }))
+    }
+  }
+
+  // ── Internal helpers ───────────────────────────────────────────────────────
+
   private effectiveDepth(): number {
-    const n = this.getPresetTransforms().length
-    const maxDepth = Math.floor(Math.log(MAX_ITEMS) / Math.log(Math.max(n, 2)))
+    const n        = Math.max(this.transforms.length, 2)
+    const maxDepth = Math.floor(Math.log(MAX_ITEMS) / Math.log(n))
     return Math.min(Math.round(this.depth.value), maxDepth)
   }
 
-  // Build resolved transforms: offsets scaled by spread and rotated by global rotation
-  private buildTransforms(): Array<{ scale: number; rotDeg: number; ox: number; oy: number }> {
-    const s       = this.spread.value
-    const gr      = this.rotation.value
-    const grRad   = (gr * Math.PI) / 180
-    const cosGR   = Math.cos(grRad)
-    const sinGR   = Math.sin(grRad)
-    return this.getPresetTransforms().map(t => {
-      const ox = t.offsetX * s * cosGR - t.offsetY * s * sinGR
-      const oy = t.offsetX * s * sinGR + t.offsetY * s * cosGR
-      return { scale: t.scale, rotDeg: t.rotation + gr, ox, oy }
-    })
+  private buildResolved(): Array<{ scale: number; rotDeg: number; ox: number; oy: number }> {
+    const s     = this.spread.value
+    const gr    = this.rotation.value
+    const grRad = (gr * Math.PI) / 180
+    const cosGR = Math.cos(grRad)
+    const sinGR = Math.sin(grRad)
+    return this.transforms.map(t => ({
+      scale:  t.scale,
+      rotDeg: t.rotation + gr,
+      ox:     t.offsetX * s * cosGR - t.offsetY * s * sinGR,
+      oy:     t.offsetX * s * sinGR + t.offsetY * s * cosGR,
+    }))
   }
 
-  renderGizmo({ ctx, screenOrigins, zoom }: GizmoContext): void {
-    const transforms = this.buildTransforms()
-    const n          = transforms.length
-    const gizmoDepth = Math.min(
-      Math.floor(Math.log(400) / Math.log(Math.max(n, 2))),
-      this.effectiveDepth(),
-    )
-
-    // Build gizmo dot positions via the same iteration
-    type Pt = { x: number; y: number }
-    let pts: Pt[] = [{ x: 0, y: 0 }]
-    for (let i = 0; i < gizmoDepth; i++) {
-      pts = pts.flatMap(p =>
-        transforms.map(t => {
-          const rot = (t.rotDeg * Math.PI) / 180
-          const cos = Math.cos(rot)
-          const sin = Math.sin(rot)
-          const px  = p.x * t.scale
-          const py  = p.y * t.scale
-          return { x: px * cos - py * sin + t.ox, y: px * sin + py * cos + t.oy }
-        }),
-      )
-    }
-
-    ctx.save()
-    ctx.fillStyle   = this.gizmoColor
-    ctx.globalAlpha = 0.55
-    for (const { x: ox, y: oy } of screenOrigins) {
-      for (const { x, y } of pts) {
-        ctx.beginPath()
-        ctx.arc(ox + x * zoom, oy + y * zoom, 2, 0, Math.PI * 2)
-        ctx.fill()
-      }
-    }
-    ctx.restore()
-  }
+  // ── Pipeline ───────────────────────────────────────────────────────────────
 
   process(items: DrawItem[]): DrawItem[] {
     if (items.length === 0) return []
-    // Use the first item as the visual template; reset its transform to origin
-    // so the IFS always builds centered at (0,0). The entity's own TransformComponent
-    // (Style stage) moves the whole pattern into position afterward.
+
+    // Capture the incoming item's world position (set by upstream TransformComponent,
+    // if any) so the fractal lands at the entity origin regardless of pipeline order.
+    const cx = items[0].transform.x
+    const cy = items[0].transform.y
+
     const template = {
       ...items[0],
       transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
     }
-    const transforms = this.buildTransforms()
-    const depth      = this.effectiveDepth()
+    const resolved = this.buildResolved()
+    const depth    = this.effectiveDepth()
 
     let current: DrawItem[] = [template]
     for (let i = 0; i < depth; i++) {
       current = current.flatMap(item =>
-        transforms.map(t => applyTransform(item, t.scale, t.rotDeg, t.ox, t.oy)),
+        resolved.map(t => applyTransform(item, t.scale, t.rotDeg, t.ox, t.oy)),
       )
     }
-    return current
+
+    // Centre the fractal: shift all items so the bounding-box centre lands at (cx, cy).
+    // This ensures every preset is visually centred on the entity origin.
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    for (const { transform: t } of current) {
+      if (t.x < minX) minX = t.x
+      if (t.x > maxX) maxX = t.x
+      if (t.y < minY) minY = t.y
+      if (t.y > maxY) maxY = t.y
+    }
+    const bx = (minX + maxX) / 2
+    const by = (minY + maxY) / 2
+    const dx = cx - bx
+    const dy = cy - by
+
+    return current.map(item => ({
+      ...item,
+      transform: { ...item.transform, x: item.transform.x + dx, y: item.transform.y + dy },
+    }))
   }
 }

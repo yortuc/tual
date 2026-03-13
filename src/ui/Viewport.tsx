@@ -157,12 +157,13 @@ export function Viewport() {
       : { x: 0, y: 0 }
     const entityScreenOrigin = { x: origin.x * zoom + panX, y: origin.y * zoom + panY }
     const screenOrigins = [entityScreenOrigin]
-    const hasModifier = components.some(c => c.stage === PipelineStage.Modifier)
+    const hasModifier    = components.some(c => c.stage === PipelineStage.Modifier)
+    const hasDistributor = components.some(c => c.stage === PipelineStage.Distributor)
 
     let itemCount = 0
     for (const comp of components) {
       if (comp.renderGizmo) {
-        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, itemCount, dashOffset })
+        comp.renderGizmo({ ctx, origin, screenOrigins, zoom, hasModifier, hasDistributor, itemCount, dashOffset })
       }
       if (comp.stage === PipelineStage.Shape) {
         itemCount += 1

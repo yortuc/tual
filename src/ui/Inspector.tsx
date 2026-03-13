@@ -32,7 +32,7 @@ import { PhyllotaxisDistributor } from '../components/distributors/PhyllotaxisDi
 import { SpiralDistributor } from '../components/distributors/SpiralDistributor'
 import { RoseDistributor } from '../components/distributors/RoseDistributor'
 import { LissajousDistributor } from '../components/distributors/LissajousDistributor'
-import { IFSDistributor } from '../components/distributors/IFSDistributor'
+import { IFSDistributor, IFS_PRESETS, type IFSPreset } from '../components/distributors/IFSDistributor'
 import { TransformComponent } from '../components/styles/TransformComponent'
 import {
   createColorGradientBundle,
@@ -90,7 +90,7 @@ const pv = {
   spiral: (aStep:number,rStep:number)=> { const s = new SpiralDistributor(); s.angleStep.value=aStep; s.radiusStep.value=rStep; return s },
   rose:   (k:number,r:number)        => { const d = new RoseDistributor(); d.petals.value=k; d.radius.value=r; return d },
   liss:   (fx:number,fy:number,rx:number,ry:number,ph:number) => { const d = new LissajousDistributor(); d.freqX.value=fx; d.freqY.value=fy; d.radiusX.value=rx; d.radiusY.value=ry; d.phaseShift.value=ph; return d },
-  ifs:    (preset:string,depth:number,spread:number) => { const d = new IFSDistributor(); d.preset.value=preset as never; d.depth.value=depth; d.spread.value=spread; return d },
+  ifs:    (preset:string,depth:number,spread:number) => { const d = new IFSDistributor(); d.loadPreset(preset as never); d.depth.value=depth; d.spread.value=spread; return d },
   ramp:   (ch:string,s:number,e:number) => { const r = new RampSignal(); r.output.value=ch; r.start.value=s; r.end.value=e; return r },
   wave:   (ch:string,amp:number,off:number) => { const w = new WaveSignal(); w.output.value=ch; w.amplitude.value=amp; w.offset.value=off; return w },
   noise:  (ch:string,lo:number,hi:number) => { const n = new NoiseSignal(); n.output.value=ch; n.min.value=lo; n.max.value=hi; return n },
@@ -298,6 +298,102 @@ function PropRow({ prop, onPropChanged }: { prop: Prop<unknown>; onPropChanged?:
   )
 }
 
+// ---- IFSTransformEditor ----
+
+const IFS_COL_STYLE: React.CSSProperties = {
+  fontSize: 10, color: '#555', textAlign: 'center', paddingBottom: 3,
+}
+
+function IFSTransformEditor({ comp }: { comp: IFSDistributor }) {
+  const [, tick] = useState(0)
+
+  const commit = () => { eventBus.emit('world:changed'); tick(n => n + 1) }
+
+  const setField = (i: number, field: keyof typeof comp.transforms[0], raw: string) => {
+    const v = parseFloat(raw)
+    if (!isNaN(v)) { comp.transforms[i][field] = v; commit() }
+  }
+
+  const numInput = (i: number, field: keyof typeof comp.transforms[0], step: number) => (
+    <input
+      type="number"
+      step={step}
+      defaultValue={comp.transforms[i][field]}
+      key={`${i}-${field}-${comp.transforms[i][field]}`}
+      onChange={e => setField(i, field, e.target.value)}
+      style={{
+        width: '100%', background: '#111', border: '1px solid #333',
+        color: '#ccc', borderRadius: 2, padding: '2px 4px', fontSize: 10,
+        boxSizing: 'border-box', outline: 'none',
+      }}
+    />
+  )
+
+  const presets = Object.keys(IFS_PRESETS) as IFSPreset[]
+
+  return (
+    <div style={{ padding: '8px 10px', background: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+      {/* Preset buttons */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ color: '#555', fontSize: 10, alignSelf: 'center', marginRight: 2 }}>Preset:</span>
+        {presets.map(name => (
+          <button
+            key={name}
+            onClick={() => { comp.loadPreset(name); commit() }}
+            style={{
+              background: '#252525', border: '1px solid #383838', color: '#999',
+              borderRadius: 3, padding: '2px 7px', fontSize: 10, cursor: 'pointer',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#ddd')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#999')}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {/* Transform table */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 18px', gap: 3, marginBottom: 4 }}>
+        {(['Scale','Rot','OX','OY',''] as const).map(h => (
+          <div key={h} style={IFS_COL_STYLE}>{h}</div>
+        ))}
+        {comp.transforms.map((_t, i) => (
+          <React.Fragment key={i}>
+            {numInput(i, 'scale',    0.01)}
+            {numInput(i, 'rotation', 1)}
+            {numInput(i, 'offsetX',  0.01)}
+            {numInput(i, 'offsetY',  0.01)}
+            <button
+              onClick={() => { comp.removeTransform(i); commit() }}
+              disabled={comp.transforms.length <= 1}
+              style={{
+                background: 'none', border: 'none', color: '#555',
+                cursor: comp.transforms.length > 1 ? 'pointer' : 'default',
+                fontSize: 13, lineHeight: 1, padding: 0,
+              }}
+              onMouseEnter={e => { if (comp.transforms.length > 1) e.currentTarget.style.color = '#c0392b' }}
+              onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+            >×</button>
+          </React.Fragment>
+        ))}
+      </div>
+
+      <button
+        onClick={() => { comp.addTransform(); commit() }}
+        style={{
+          width: '100%', background: '#1e1e1e', border: '1px dashed #333',
+          color: '#555', borderRadius: 3, padding: '3px 0', fontSize: 10,
+          cursor: 'pointer',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.color = '#888')}
+        onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+      >
+        + Add Transform
+      </button>
+    </div>
+  )
+}
+
 // ---- ComponentSection ----
 
 function ComponentSection({
@@ -362,6 +458,9 @@ function ComponentSection({
         <div style={{ padding: '8px 10px', background: '#1a1a1a' }}>
           {props.map(([key, prop]) => <PropRow key={key} prop={prop} onPropChanged={() => component.onPropChanged?.(prop)} />)}
         </div>
+      )}
+      {!collapsed && component instanceof IFSDistributor && (
+        <IFSTransformEditor comp={component} />
       )}
     </div>
   )

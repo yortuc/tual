@@ -429,7 +429,7 @@ describe('IFSDistributor', () => {
 
   it('Sierpinski depth=1 produces 3 items', () => {
     const ifs = new IFSDistributor()
-    ifs.preset.value = 'Sierpinski' as never
+    ifs.loadPreset('Sierpinski')
     ifs.depth.value = 1
     const result = ifs.process!([makeItem()])
     expect(result).toHaveLength(3)
@@ -437,7 +437,7 @@ describe('IFSDistributor', () => {
 
   it('Sierpinski depth=2 produces 9 items', () => {
     const ifs = new IFSDistributor()
-    ifs.preset.value = 'Sierpinski' as never
+    ifs.loadPreset('Sierpinski')
     ifs.depth.value = 2
     const result = ifs.process!([makeItem()])
     expect(result).toHaveLength(9)
@@ -445,7 +445,7 @@ describe('IFSDistributor', () => {
 
   it('Cantor depth=1 produces 4 items', () => {
     const ifs = new IFSDistributor()
-    ifs.preset.value = 'Cantor' as never
+    ifs.loadPreset('Cantor')
     ifs.depth.value = 1
     const result = ifs.process!([makeItem()])
     expect(result).toHaveLength(4)
@@ -453,7 +453,7 @@ describe('IFSDistributor', () => {
 
   it('Tree depth=3 produces 8 items', () => {
     const ifs = new IFSDistributor()
-    ifs.preset.value = 'Tree' as never
+    ifs.loadPreset('Tree')
     ifs.depth.value = 3
     const result = ifs.process!([makeItem()])
     expect(result).toHaveLength(8)
@@ -461,7 +461,7 @@ describe('IFSDistributor', () => {
 
   it('output items never exceed MAX_ITEMS regardless of depth', () => {
     const ifs = new IFSDistributor()
-    ifs.preset.value = 'Snowflake' as never
+    ifs.loadPreset('Snowflake')
     ifs.depth.value = 8  // would be 6^8 = 1.7M without cap
     const result = ifs.process!([makeItem()])
     expect(result.length).toBeLessThanOrEqual(2000)
@@ -480,12 +480,12 @@ describe('IFSDistributor', () => {
 
   it('spread scales output positions', () => {
     const ifs1 = new IFSDistributor()
-    ifs1.preset.value = 'Sierpinski' as never
+    ifs1.loadPreset('Sierpinski')
     ifs1.depth.value = 1
     ifs1.spread.value = 100
 
     const ifs2 = new IFSDistributor()
-    ifs2.preset.value = 'Sierpinski' as never
+    ifs2.loadPreset('Sierpinski')
     ifs2.depth.value = 1
     ifs2.spread.value = 200
 

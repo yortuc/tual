@@ -8,6 +8,7 @@ export interface SerializedComponent {
   groupId?: string
   groupLabel?: string
   channels?: Record<string, string>  // propKey → channel name
+  extra?: Record<string, unknown>    // component-managed overflow data (e.g. IFS transforms)
 }
 
 export interface SerializedEntity {
@@ -40,6 +41,8 @@ export function serializeWorld(world: World): SerializedScene {
         if (comp.groupId)              entry.groupId   = comp.groupId
         if (comp.groupLabel)           entry.groupLabel = comp.groupLabel
         if (Object.keys(channels).length) entry.channels = channels
+        const extra = comp.serializeExtra?.()
+        if (extra && Object.keys(extra).length) entry.extra = extra
         return entry
       }),
     })),
@@ -74,6 +77,8 @@ export function loadScene(scene: SerializedScene, world: World): void {
           }
         }
       }
+      // Restore self-managed extra data (e.g. IFS transform array)
+      if (compData.extra) comp.deserializeExtra?.(compData.extra)
       // Restore group membership
       if (compData.groupId)    comp.groupId   = compData.groupId
       if (compData.groupLabel) comp.groupLabel = compData.groupLabel
