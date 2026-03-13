@@ -9,11 +9,11 @@ export class GradientMutator extends Component {
   readonly stage = PipelineStage.Modifier
   readonly label = 'Gradient'
 
-  scaleStart   = new NumberProp('Scale Start',   { default: 1,   min: 0,    max: 10,  step: 0.01 })
-  scaleEnd     = new NumberProp('Scale End',     { default: 1,   min: 0,    max: 10,  step: 0.01 })
-  opacityStart = new NumberProp('Opacity Start', { default: 1,   min: 0,    max: 1,   step: 0.01 })
-  opacityEnd   = new NumberProp('Opacity End',   { default: 0,   min: 0,    max: 1,   step: 0.01 })
-  rotationStep = new NumberProp('Rotation Step', { default: 0,   min: -180, max: 180, step: 1    })
+  scaleStart   = new NumberProp('Scale Start',   { default: 1,   min: 0,    max: 10,  step: 0.01, shortLabel: 'Ss'  })
+  scaleEnd     = new NumberProp('Scale End',     { default: 1,   min: 0,    max: 10,  step: 0.01, shortLabel: 'Se'  })
+  opacityStart = new NumberProp('Opacity Start', { default: 1,   min: 0,    max: 1,   step: 0.01, shortLabel: 'Os'  })
+  opacityEnd   = new NumberProp('Opacity End',   { default: 0,   min: 0,    max: 1,   step: 0.01, shortLabel: 'Oe'  })
+  rotationStep = new NumberProp('Rotation Step', { default: 0,   min: -180, max: 180, step: 1,    shortLabel: 'Rot' })
 
   process(items: DrawItem[]): DrawItem[] {
     const n = items.length

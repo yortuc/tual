@@ -9,7 +9,7 @@ export class TextComponent extends Component {
   readonly label = 'Text'
 
   content = new StringProp('Content', { default: 'Hello World' })
-  fontSize = new NumberProp('Font Size', { default: 24, min: 6, max: 200 })
+  fontSize = new NumberProp('Font Size', { default: 24, min: 6, max: 200, shortLabel: 'Sz' })
   fontFamily = new EnumProp('Font Family', {
     default: 'sans-serif',
     options: ['sans-serif', 'serif', 'monospace', 'cursive'],

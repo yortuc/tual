@@ -7,8 +7,8 @@ export class TransformComponent extends Component {
   readonly label = 'Transform'
 
   position = new Vec2Prop('Position', { default: { x: 300, y: 300 } })
-  rotation = new NumberProp('Rotation', { default: 0,   min: -180, max: 180,  step: 0.5  })
-  scale    = new NumberProp('Scale',    { default: 1,   min: 0.01, max: 20,   step: 0.01 })
+  rotation = new NumberProp('Rotation', { default: 0,   min: -180, max: 180,  step: 0.5,  shortLabel: 'Rot' })
+  scale    = new NumberProp('Scale',    { default: 1,   min: 0.01, max: 20,   step: 0.01, shortLabel: 'Sc'  })
 
   renderGizmo({ ctx, screenOrigins }: GizmoContext): void {
     const { x, y } = screenOrigins[0]

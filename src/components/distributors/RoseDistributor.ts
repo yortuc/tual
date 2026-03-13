@@ -9,8 +9,8 @@ export class RoseDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Rose'
 
-  petals = new NumberProp('Petals (k)', { default: 5,  min: 1, max: 12,  step: 1   })
-  radius = new NumberProp('Radius',     { default: 60, min: 5, max: 300, step: 1   })
+  petals = new NumberProp('Petals (k)', { default: 5,  min: 1, max: 12,  step: 1,   shortLabel: 'K'  })
+  radius = new NumberProp('Radius',     { default: 60, min: 5, max: 300, step: 1,   shortLabel: 'R'  })
 
   private _pos(i: number, n: number): { x: number; y: number } {
     const k = this.petals.value

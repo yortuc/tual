@@ -6,8 +6,8 @@ export class LinearDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Linear Distributor'
 
-  spacingX = new NumberProp('Spacing X', { default: 80, min: -1000, max: 1000 })
-  spacingY = new NumberProp('Spacing Y', { default: 0,  min: -1000, max: 1000 })
+  spacingX = new NumberProp('Spacing X', { default: 80, min: -1000, max: 1000, shortLabel: 'X' })
+  spacingY = new NumberProp('Spacing Y', { default: 0,  min: -1000, max: 1000, shortLabel: 'Y' })
 
   renderGizmo({ ctx, screenOrigins, zoom, itemCount, dashOffset }: GizmoContext): void {
     const n = itemCount

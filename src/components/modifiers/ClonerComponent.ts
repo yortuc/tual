@@ -6,7 +6,7 @@ export class ClonerComponent extends Component {
   readonly stage = PipelineStage.Modifier
   readonly label = 'Cloner'
 
-  count = new NumberProp('Count', { default: 6, min: 1, max: 500 })
+  count = new NumberProp('Count', { default: 6, min: 1, max: 500, shortLabel: 'N' })
 
   process(items: DrawItem[]): DrawItem[] {
     const n = Math.round(this.count.value)

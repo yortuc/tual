@@ -18,9 +18,9 @@ export class NoiseSignal extends Component {
   readonly label = 'Noise Signal'
 
   output = new StringProp('Channel', { default: 'noise' })
-  seed   = new NumberProp('Seed',    { default: 0,   min: 0,    max: 999, step: 1    })
-  min    = new NumberProp('Min',     { default: 0,   min: -100, max: 100, step: 0.01 })
-  max    = new NumberProp('Max',     { default: 1,   min: -100, max: 100, step: 0.01 })
+  seed   = new NumberProp('Seed',    { default: 0,   min: 0,    max: 999, step: 1,    shortLabel: 'Sd'  })
+  min    = new NumberProp('Min',     { default: 0,   min: -100, max: 100, step: 0.01, shortLabel: 'Lo'  })
+  max    = new NumberProp('Max',     { default: 1,   min: -100, max: 100, step: 0.01, shortLabel: 'Hi'  })
 
   processState(state: PipelineState): PipelineState {
     const { items, channels } = state

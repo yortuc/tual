@@ -12,9 +12,9 @@ export class FillComponent extends Component {
   readonly label = 'Fill'
 
   color      = new ColorProp('Color',      { default: DEFAULT_COLOR })
-  hue        = new NumberProp('Hue',        { default: DEFAULT_HSL[0], min: 0,   max: 360, step: 1 })
-  saturation = new NumberProp('Saturation', { default: DEFAULT_HSL[1], min: 0,   max: 100, step: 1 })
-  lightness  = new NumberProp('Lightness',  { default: DEFAULT_HSL[2], min: 0,   max: 100, step: 1 })
+  hue        = new NumberProp('Hue',        { default: DEFAULT_HSL[0], min: 0,   max: 360, step: 1, shortLabel: 'H'  })
+  saturation = new NumberProp('Saturation', { default: DEFAULT_HSL[1], min: 0,   max: 100, step: 1, shortLabel: 'S'  })
+  lightness  = new NumberProp('Lightness',  { default: DEFAULT_HSL[2], min: 0,   max: 100, step: 1, shortLabel: 'L'  })
 
   // Convenience for programmatic initialization — sets color and syncs H/S/L.
   setColor(hex: string): void {

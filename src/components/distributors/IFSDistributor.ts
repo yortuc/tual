@@ -80,9 +80,9 @@ export class IFSDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'IFS'
 
-  depth    = new NumberProp('Depth',    { default: 4, min: 1, max: 8,   step: 1 })
-  spread   = new NumberProp('Spread',   { default: 80, min: 5, max: 400, step: 1 })
-  rotation = new NumberProp('Rotation', { default: 0, min: -180, max: 180, step: 1 })
+  depth    = new NumberProp('Depth',    { default: 4, min: 1, max: 8,   step: 1, shortLabel: 'D'   })
+  spread   = new NumberProp('Spread',   { default: 80, min: 5, max: 400, step: 1, shortLabel: 'Sp'  })
+  rotation = new NumberProp('Rotation', { default: 0, min: -180, max: 180, step: 1, shortLabel: 'Rot' })
 
   // Variable-length transform array — NOT a Prop, managed manually
   transforms: IFSTransform[] = [...IFS_PRESETS.Sierpinski.map(t => ({ ...t }))]

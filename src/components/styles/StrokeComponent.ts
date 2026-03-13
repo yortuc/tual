@@ -8,7 +8,7 @@ export class StrokeComponent extends Component {
   readonly label = 'Stroke'
 
   color = new ColorProp('Color', { default: '#ffffff' })
-  width = new NumberProp('Width', { default: 1, min: 0.5, max: 50, step: 0.5 })
+  width = new NumberProp('Width', { default: 1, min: 0.5, max: 50, step: 0.5, shortLabel: 'W' })
 
   process(items: DrawItem[]): DrawItem[] {
     return items.map(item => ({

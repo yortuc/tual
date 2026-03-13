@@ -9,7 +9,7 @@ export class CircleComponent extends Component {
   readonly stage = PipelineStage.Shape
   readonly label = 'Circle'
 
-  radius = new NumberProp('Radius', { default: 50, min: 1, max: 1000 })
+  radius = new NumberProp('Radius', { default: 50, min: 1, max: 1000, shortLabel: 'R' })
 
   private _dragStartRadius = 0
 

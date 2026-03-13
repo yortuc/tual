@@ -10,8 +10,8 @@ export class RectComponent extends Component {
   readonly stage = PipelineStage.Shape
   readonly label = 'Rectangle'
 
-  width  = new NumberProp('Width',  { default: 100, min: 1, max: 2000 })
-  height = new NumberProp('Height', { default: 100, min: 1, max: 2000 })
+  width  = new NumberProp('Width',  { default: 100, min: 1, max: 2000, shortLabel: 'W' })
+  height = new NumberProp('Height', { default: 100, min: 1, max: 2000, shortLabel: 'H' })
 
   private _dragStartWidth  = 0
   private _dragStartHeight = 0

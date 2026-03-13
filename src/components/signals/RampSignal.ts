@@ -25,9 +25,9 @@ export class RampSignal extends Component {
 
   output = new StringProp('Channel', { default: 'ramp' })
   curve  = new EnumProp('Curve',   { default: 'Linear', options: ['Linear', 'EaseIn', 'EaseOut', 'EaseInOut', 'Sine', 'Step'] })
-  start  = new NumberProp('Start', { default: 0, min: -100, max: 100, step: 0.01 })
-  end    = new NumberProp('End',   { default: 1, min: -100, max: 100, step: 0.01 })
-  step   = new NumberProp('Step',  { default: 0.5, min: 0, max: 1, step: 0.01 })
+  start  = new NumberProp('Start', { default: 0, min: -100, max: 100, step: 0.01, shortLabel: 'A'  })
+  end    = new NumberProp('End',   { default: 1, min: -100, max: 100, step: 0.01, shortLabel: 'B'  })
+  step   = new NumberProp('Step',  { default: 0.5, min: 0, max: 1, step: 0.01, shortLabel: 'St' })
 
   processState(state: PipelineState): PipelineState {
     const { items, channels } = state

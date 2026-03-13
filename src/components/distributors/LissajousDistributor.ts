@@ -14,11 +14,11 @@ export class LissajousDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Lissajous'
 
-  freqX      = new NumberProp('Freq X',      { default: 3,  min: 1, max: 10,  step: 1   })
-  freqY      = new NumberProp('Freq Y',      { default: 2,  min: 1, max: 10,  step: 1   })
-  phaseShift = new NumberProp('Phase (deg)', { default: 90, min: 0, max: 360, step: 1   })
-  radiusX    = new NumberProp('Radius X',    { default: 60, min: 5, max: 300, step: 1   })
-  radiusY    = new NumberProp('Radius Y',    { default: 60, min: 5, max: 300, step: 1   })
+  freqX      = new NumberProp('Freq X',      { default: 3,  min: 1, max: 10,  step: 1,   shortLabel: 'Fx' })
+  freqY      = new NumberProp('Freq Y',      { default: 2,  min: 1, max: 10,  step: 1,   shortLabel: 'Fy' })
+  phaseShift = new NumberProp('Phase (deg)', { default: 90, min: 0, max: 360, step: 1,   shortLabel: 'Ph' })
+  radiusX    = new NumberProp('Radius X',    { default: 60, min: 5, max: 300, step: 1,   shortLabel: 'Rx' })
+  radiusY    = new NumberProp('Radius Y',    { default: 60, min: 5, max: 300, step: 1,   shortLabel: 'Ry' })
 
   private _pos(i: number, n: number): { x: number; y: number } {
     const t     = (i / n) * 2 * Math.PI

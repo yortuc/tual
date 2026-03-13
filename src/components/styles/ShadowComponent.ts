@@ -8,9 +8,9 @@ export class ShadowComponent extends Component {
   readonly label = 'Shadow'
 
   color = new ColorProp('Color', { default: '#000000' })
-  offsetX = new NumberProp('Offset X', { default: 4, min: -100, max: 100 })
-  offsetY = new NumberProp('Offset Y', { default: 4, min: -100, max: 100 })
-  blur = new NumberProp('Blur', { default: 12, min: 0, max: 100 })
+  offsetX = new NumberProp('Offset X', { default: 4, min: -100, max: 100, shortLabel: 'X' })
+  offsetY = new NumberProp('Offset Y', { default: 4, min: -100, max: 100, shortLabel: 'Y' })
+  blur = new NumberProp('Blur', { default: 12, min: 0, max: 100, shortLabel: 'Bl' })
 
   process(items: DrawItem[]): DrawItem[] {
     return items.map(item => ({

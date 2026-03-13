@@ -11,7 +11,7 @@ export class PhyllotaxisDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Phyllotaxis'
 
-  spread = new NumberProp('Spread', { default: 22, min: 1, max: 200, step: 0.5 })
+  spread = new NumberProp('Spread', { default: 22, min: 1, max: 200, step: 0.5, shortLabel: 'Sp' })
 
   renderGizmo({ ctx, screenOrigins, zoom, itemCount }: GizmoContext): void {
     const n = itemCount

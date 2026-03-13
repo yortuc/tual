@@ -5,6 +5,7 @@ import { editorStore } from '../editor/EditorStore'
 import { sceneStore } from '../editor/SceneStore'
 import { Component, PipelineStage } from '../ecs/Component'
 import { Prop } from '../props/Prop'
+import { NumberProp } from '../props/NumberProp'
 import { historyStore } from '../ecs/HistoryStore'
 import {
   SetPropCommand, AddComponentCommand, RemoveComponentCommand,
@@ -268,6 +269,71 @@ const COMPONENT_CATEGORIES: { category: string; items: MenuItem[] }[] = [
   },
 ]
 
+// ---- CompactPropField — one NumberProp with shortLabel (used for 1-up or 2-up rows) ----
+
+function CompactPropField({ prop, onPropChanged }: { prop: NumberProp; onPropChanged?: () => void }) {
+  const [, tick] = useState(0)
+  const startValueRef = useRef<number>(prop.value)
+
+  const onChange = (v: number) => {
+    prop.value = v
+    onPropChanged?.()
+    eventBus.emit('world:changed')
+    tick(n => n + 1)
+  }
+
+  const onCommit = (v: number) => {
+    if (startValueRef.current !== v) {
+      historyStore.record(new SetPropCommand(prop, startValueRef.current, v, `Change ${prop.label}`, onPropChanged))
+    }
+    startValueRef.current = prop.value
+  }
+
+  return (
+    <div style={{ flex: 1, minWidth: 0 }} onPointerDown={() => { startValueRef.current = prop.value }}>
+      {prop.renderEditor(onChange, onCommit)}
+    </div>
+  )
+}
+
+// Groups consecutive shortLabel NumberProps into 2-up pairs; everything else is a PropRow.
+function buildPropRows(
+  props: Array<[string, Prop<unknown>]>,
+  onPropChanged: (p: Prop<unknown>) => void,
+): React.ReactNode[] {
+  const rows: React.ReactNode[] = []
+  let i = 0
+  while (i < props.length) {
+    const [k0, p0] = props[i]
+    const compact0 = p0 instanceof NumberProp && !!(p0 as NumberProp).shortLabel
+    if (compact0 && i + 1 < props.length) {
+      const [k1, p1] = props[i + 1]
+      if (p1 instanceof NumberProp && !!(p1 as NumberProp).shortLabel) {
+        rows.push(
+          <div key={k0} style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+            <CompactPropField prop={p0 as NumberProp} onPropChanged={() => onPropChanged(p0)} />
+            <CompactPropField prop={p1 as NumberProp} onPropChanged={() => onPropChanged(p1)} />
+          </div>
+        )
+        i += 2
+        continue
+      }
+    }
+    if (compact0) {
+      rows.push(
+        <div key={k0} style={{ marginBottom: 4 }}>
+          <CompactPropField prop={p0 as NumberProp} onPropChanged={() => onPropChanged(p0)} />
+        </div>
+      )
+      i++
+      continue
+    }
+    rows.push(<PropRow key={k0} prop={p0} onPropChanged={() => onPropChanged(p0)} />)
+    i++
+  }
+  return rows
+}
+
 // ---- PropRow ----
 
 function PropRow({ prop, onPropChanged }: { prop: Prop<unknown>; onPropChanged?: () => void }) {
@@ -415,7 +481,7 @@ function ComponentSection({
       onDragEnter={e => { e.preventDefault(); onDragEnter?.() }}
       onDragOver={e => e.preventDefault()}
       onDrop={e => { e.preventDefault(); onDrop?.() }}
-      style={{ marginBottom: 6, border: '1px solid #2e2e2e', borderRadius: 4, overflow: 'hidden' }}
+      style={{ marginBottom: 4, border: '1px solid #2a2a2a', borderRadius: 4, overflow: 'hidden' }}
     >
       <div
         draggable={draggable}
@@ -426,7 +492,7 @@ function ComponentSection({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '5px 10px',
+          padding: '4px 8px',
           background: '#222',
           cursor: draggable ? 'grab' : 'default',
           fontSize: 12,
@@ -458,8 +524,8 @@ function ComponentSection({
         </span>
       </div>
       {!collapsed && props.length > 0 && (
-        <div style={{ padding: '8px 10px', background: '#1a1a1a' }}>
-          {props.map(([key, prop]) => <PropRow key={key} prop={prop} onPropChanged={() => component.onPropChanged?.(prop)} />)}
+        <div style={{ padding: '6px 8px', background: '#1a1a1a' }}>
+          {buildPropRows(props, p => component.onPropChanged?.(p))}
         </div>
       )}
       {!collapsed && component instanceof IFSDistributor && (

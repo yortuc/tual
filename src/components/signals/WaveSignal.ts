@@ -10,10 +10,10 @@ export class WaveSignal extends Component {
   readonly label = 'Wave Signal'
 
   output    = new StringProp('Channel',   { default: 'wave' })
-  frequency = new NumberProp('Frequency', { default: 1,   min: 0.1, max: 20,  step: 0.1  })
-  phase     = new NumberProp('Phase',     { default: 0,   min: 0,   max: 1,   step: 0.01 })
-  amplitude = new NumberProp('Amplitude', { default: 1,   min: -10, max: 10,  step: 0.01 })
-  offset    = new NumberProp('Offset',    { default: 0,   min: -10, max: 10,  step: 0.01 })
+  frequency = new NumberProp('Frequency', { default: 1,   min: 0.1, max: 20,  step: 0.1,  shortLabel: 'Hz'  })
+  phase     = new NumberProp('Phase',     { default: 0,   min: 0,   max: 1,   step: 0.01, shortLabel: 'Ph'  })
+  amplitude = new NumberProp('Amplitude', { default: 1,   min: -10, max: 10,  step: 0.01, shortLabel: 'Amp' })
+  offset    = new NumberProp('Offset',    { default: 0,   min: -10, max: 10,  step: 0.01, shortLabel: 'Off' })
 
   processState(state: PipelineState): PipelineState {
     const { items, channels } = state

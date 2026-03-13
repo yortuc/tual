@@ -9,7 +9,7 @@ export class RadialDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Radial Distributor'
 
-  radius = new NumberProp('Radius', { default: 150, min: 0, max: 1000 })
+  radius = new NumberProp('Radius', { default: 150, min: 0, max: 1000, shortLabel: 'R' })
 
   private _dragStartRadius = 0
 

@@ -5,7 +5,7 @@ export class OpacityComponent extends Component {
   readonly stage = PipelineStage.Style
   readonly label = 'Opacity'
 
-  opacity = new NumberProp('Opacity', { default: 1, min: 0, max: 1, step: 0.01 })
+  opacity = new NumberProp('Opacity', { default: 1, min: 0, max: 1, step: 0.01, shortLabel: 'Op' })
 
   processState(state: PipelineState): PipelineState {
     return {

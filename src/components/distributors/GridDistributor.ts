@@ -6,9 +6,9 @@ export class GridDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Grid Distributor'
 
-  columns  = new NumberProp('Columns',   { default: 4,  min: 1,  max: 50 })
-  spacingX = new NumberProp('Spacing X', { default: 80, min: 0,  max: 1000 })
-  spacingY = new NumberProp('Spacing Y', { default: 80, min: 0,  max: 1000 })
+  columns  = new NumberProp('Columns',   { default: 4,  min: 1,  max: 50,   shortLabel: 'Col' })
+  spacingX = new NumberProp('Spacing X', { default: 80, min: 0,  max: 1000, shortLabel: 'X'   })
+  spacingY = new NumberProp('Spacing Y', { default: 80, min: 0,  max: 1000, shortLabel: 'Y'   })
 
   renderGizmo({ ctx, screenOrigins, zoom, itemCount, dashOffset }: GizmoContext): void {
     const n = itemCount

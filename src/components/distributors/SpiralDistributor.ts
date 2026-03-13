@@ -10,8 +10,8 @@ export class SpiralDistributor extends Component {
   readonly stage = PipelineStage.Distributor
   readonly label = 'Spiral Distributor'
 
-  angleStep  = new NumberProp('Angle Step',  { default: 30,  min: 1,  max: 360, step: 0.5  })
-  radiusStep = new NumberProp('Radius Step', { default: 12,  min: 0,  max: 200, step: 0.5  })
+  angleStep  = new NumberProp('Angle Step',  { default: 30,  min: 1,  max: 360, step: 0.5,  shortLabel: 'A°'  })
+  radiusStep = new NumberProp('Radius Step', { default: 12,  min: 0,  max: 200, step: 0.5,  shortLabel: 'Rr'  })
 
   renderGizmo({ ctx, screenOrigins, zoom, itemCount, dashOffset }: GizmoContext): void {
     const n = itemCount
