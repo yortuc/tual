@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { world } from '../ecs/World'
-import { saveToLocalStorage, loadFromLocalStorage } from '../editor/Serializer'
+import { saveToFile, loadFromFile, saveToLocalStorage, loadFromLocalStorage } from '../editor/Serializer'
+import { eventBus } from '../ecs/EventBus'
 import { PresetsModal } from './PresetsModal'
 
 const btn: React.CSSProperties = {
@@ -22,19 +23,13 @@ export function TopBar() {
     setTimeout(() => setFlash(null), 1800)
   }
 
-  const handleSave = () => {
-    saveToLocalStorage(world)
-    notify('Saved')
-  }
+  // Auto-save to localStorage on every change
+  useEffect(() => {
+    const unsub = eventBus.on('world:changed', () => saveToLocalStorage(world))
+    return unsub
+  }, [])
 
-  const handleLoad = () => {
-    const ok = loadFromLocalStorage(world)
-    notify(ok ? 'Loaded' : 'Nothing saved yet')
-  }
-
-  const handleNew = () => {
-    world.clear()
-  }
+  const handleNew = () => { world.clear() }
 
   return (
     <>
@@ -63,8 +58,13 @@ export function TopBar() {
           >
             Presets
           </button>
-          <button style={btn} onClick={handleSave}>Save</button>
-          <button style={btn} onClick={handleLoad}>Load</button>
+          <button style={btn} onClick={() => loadFromFile(world)}>Import</button>
+          <button
+            style={{ ...btn, color: '#4ade80', borderColor: '#2d5a3d' }}
+            onClick={() => { saveToFile(world); notify('Exported') }}
+          >
+            Export
+          </button>
         </div>
       </div>
 

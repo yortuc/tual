@@ -106,3 +106,36 @@ export function loadFromLocalStorage(world: World): boolean {
     return false
   }
 }
+
+export function saveToFile(world: World, filename = 'scene.tual.json'): void {
+  const json = JSON.stringify(serializeWorld(world), null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function loadFromFile(world: World): void {
+  const input    = document.createElement('input')
+  input.type     = 'file'
+  input.accept   = '.json,.tual.json'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = e => {
+      try {
+        const scene = JSON.parse(e.target!.result as string) as SerializedScene
+        loadScene(scene, world)
+      } catch (err) {
+        console.error('Failed to load file:', err)
+        alert('Could not read file — make sure it is a valid tual scene.')
+      }
+    }
+    reader.readAsText(file)
+  }
+  input.click()
+}
