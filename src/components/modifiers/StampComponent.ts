@@ -16,12 +16,22 @@ export class StampComponent extends Component {
 
   process(items: DrawItem[]): DrawItem[] {
     if (items.length === 0) return []
+    // Compute centroid so children are stored in local space.
+    // When a distributor repositions this stamp, expandStamps composes the
+    // new stamp transform with each local child — without this the children
+    // carry absolute world positions and get double-offset.
+    const cx = items.reduce((s, i) => s + i.transform.x, 0) / items.length
+    const cy = items.reduce((s, i) => s + i.transform.y, 0) / items.length
+    const localChildren = items.map(item => ({
+      ...item,
+      transform: { ...item.transform, x: item.transform.x - cx, y: item.transform.y - cy },
+    }))
     return [{
       shape:    { type: 'stamp' },
-      transform: identityTransform(),
+      transform: { x: cx, y: cy, rotation: 0, scaleX: 1, scaleY: 1 },
       style:    { opacity: 1 },
       channels: {},
-      children: items,
+      children: localChildren,
     }]
   }
 }
