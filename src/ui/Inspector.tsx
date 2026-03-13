@@ -311,7 +311,7 @@ function IFSTransformEditor({ comp }: { comp: IFSDistributor }) {
 
   const setField = (i: number, field: keyof typeof comp.transforms[0], raw: string) => {
     const v = parseFloat(raw)
-    if (!isNaN(v)) { comp.transforms[i][field] = v; commit() }
+    if (!isNaN(v)) { comp.transforms[i][field] = v; comp.activePreset = null; commit() }
   }
 
   const numInput = (i: number, field: keyof typeof comp.transforms[0], step: number) => (
@@ -333,23 +333,20 @@ function IFSTransformEditor({ comp }: { comp: IFSDistributor }) {
 
   return (
     <div style={{ padding: '8px 10px', background: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
-      {/* Preset buttons */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-        <span style={{ color: '#555', fontSize: 10, alignSelf: 'center', marginRight: 2 }}>Preset:</span>
-        {presets.map(name => (
-          <button
-            key={name}
-            onClick={() => { comp.loadPreset(name); commit() }}
-            style={{
-              background: '#252525', border: '1px solid #383838', color: '#999',
-              borderRadius: 3, padding: '2px 7px', fontSize: 10, cursor: 'pointer',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#ddd')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#999')}
-          >
-            {name}
-          </button>
-        ))}
+      {/* Preset dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <span style={{ color: '#555', fontSize: 10, flexShrink: 0 }}>Preset</span>
+        <select
+          value={comp.activePreset ?? ''}
+          onChange={e => { if (e.target.value) { comp.loadPreset(e.target.value as IFSPreset); commit() } }}
+          style={{
+            flex: 1, background: '#252525', border: '1px solid #383838', color: '#999',
+            borderRadius: 3, padding: '3px 6px', fontSize: 10, cursor: 'pointer', outline: 'none',
+          }}
+        >
+          <option value="" disabled>Custom</option>
+          {presets.map(name => <option key={name} value={name}>{name}</option>)}
+        </select>
       </div>
 
       {/* Transform table */}
@@ -397,9 +394,10 @@ function IFSTransformEditor({ comp }: { comp: IFSDistributor }) {
 // ---- ComponentSection ----
 
 function ComponentSection({
-  component, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision, draggable = true,
+  component, counts, onRemove, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision, draggable = true,
 }: {
   component: Component
+  counts?: Map<Component, [number, number]>
   onRemove: () => void
   onDragStart?: () => void
   onDragEnter?: () => void
@@ -447,12 +445,17 @@ function ComponentSection({
           }} />
           {component.label}
         </span>
-        <button
-          onClick={e => { e.stopPropagation(); onRemove() }}
-          style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}
-        >
-          ×
-        </button>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, color: '#444', fontWeight: 400, letterSpacing: '0.2px' }}>
+            {(() => { const c = counts?.get(component); return c ? `${c[0]} → ${c[1]}` : '' })()}
+          </span>
+          <button
+            onClick={e => { e.stopPropagation(); onRemove() }}
+            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </span>
       </div>
       {!collapsed && props.length > 0 && (
         <div style={{ padding: '8px 10px', background: '#1a1a1a' }}>
@@ -469,9 +472,10 @@ function ComponentSection({
 // ---- GroupSection ----
 
 function GroupSection({
-  item, onRemoveGroup, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision, onRemoveMember,
+  item, counts, onRemoveGroup, onDragStart, onDragEnter, onDragEnd, onDrop, collapseRevision, onRemoveMember,
 }: {
   item: GroupItem
+  counts?: Map<Component, [number, number]>
   onRemoveGroup: () => void
   onDragStart?: () => void
   onDragEnter?: () => void
@@ -529,6 +533,7 @@ function GroupSection({
             <ComponentSection
               key={flatIndex}
               component={component}
+              counts={counts}
               draggable={false}
               onRemove={() => onRemoveMember(component)}
               collapseRevision={collapseRevision}
@@ -691,6 +696,7 @@ export function Inspector() {
     const id = editorStore.selectedEntityId
     return id !== null ? [...world.getComponents(id)] : []
   })
+  const [counts, setCounts] = useState<Map<Component, [number, number]>>(new Map())
   const [sceneComponents, setSceneComponents] = useState<Component[]>([...sceneStore.getComponents()])
   const [showAdd, setShowAdd] = useState(false)
   const [dragOverTLIndex, setDragOverTLIndex] = useState<number | null>(null)
@@ -700,10 +706,14 @@ export function Inspector() {
   useEffect(() => {
     const refresh = () => {
       const id = editorStore.selectedEntityId
+      const comps = id !== null ? [...world.getComponents(id)] : []
+      if (id !== null) world.runPipeline(id)
       setSelectedId(id)
-      setComponents(id !== null ? [...world.getComponents(id)] : [])
+      setComponents(comps)
+      setCounts(new Map(comps.map(c => [c, [c._inCount, c._outCount]])))
       setSceneComponents([...sceneStore.getComponents()])
     }
+    refresh()
     const u1 = eventBus.on('editor:selection-changed', refresh)
     const u2 = eventBus.on('world:changed', refresh)
     return () => { u1(); u2() }
@@ -819,6 +829,7 @@ export function Inspector() {
             {item.kind === 'solo' ? (
               <ComponentSection
                 component={item.component}
+                counts={counts}
                 collapseRevision={collapseRevision}
                 onRemove={() => historyStore.execute(new RemoveComponentCommand(selectedId, item.component))}
                 onDragStart={() => { dragTLIndexRef.current = tlIdx; setDragOverTLIndex(null) }}
@@ -829,6 +840,7 @@ export function Inspector() {
             ) : (
               <GroupSection
                 item={item}
+                counts={counts}
                 collapseRevision={collapseRevision}
                 onRemoveGroup={() => historyStore.execute(new RemoveGroupCommand(selectedId, item.groupId))}
                 onDragStart={() => { dragTLIndexRef.current = tlIdx; setDragOverTLIndex(null) }}

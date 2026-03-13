@@ -86,33 +86,40 @@ export class IFSDistributor extends Component {
 
   // Variable-length transform array — NOT a Prop, managed manually
   transforms: IFSTransform[] = [...IFS_PRESETS.Sierpinski.map(t => ({ ...t }))]
+  activePreset: IFSPreset | null = 'Sierpinski'
 
   // ── Preset management ──────────────────────────────────────────────────────
 
   loadPreset(name: IFSPreset): void {
     this.transforms = IFS_PRESETS[name].map(t => ({ ...t }))
+    this.activePreset = name
   }
 
   addTransform(): void {
     this.transforms.push({ scale: 0.5, rotation: 0, offsetX: 0, offsetY: 0 })
+    this.activePreset = null
   }
 
   removeTransform(index: number): void {
     if (this.transforms.length > 1) {
       this.transforms.splice(index, 1)
+      this.activePreset = null
     }
   }
 
   // ── Self-serialization ─────────────────────────────────────────────────────
 
   serializeExtra(): Record<string, unknown> {
-    return { transforms: this.transforms.map(t => ({ ...t })) }
+    const out: Record<string, unknown> = { transforms: this.transforms.map(t => ({ ...t })) }
+    if (this.activePreset) out.activePreset = this.activePreset
+    return out
   }
 
   deserializeExtra(data: Record<string, unknown>): void {
     if (Array.isArray(data.transforms) && data.transforms.length > 0) {
       this.transforms = (data.transforms as IFSTransform[]).map(t => ({ ...t }))
     }
+    this.activePreset = (data.activePreset as IFSPreset) ?? null
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────

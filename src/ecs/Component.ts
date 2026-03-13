@@ -49,6 +49,10 @@ export abstract class Component {
   // Assigned by World.addComponent — color used for both canvas gizmo and inspector dot
   gizmoColor: string = GIZMO_PALETTE[0]
 
+  // Pipeline item counts — set by World.runPipeline, read by Inspector
+  _inCount  = 0
+  _outCount = 0
+
   // Optional group membership — components sharing a groupId move/delete as a unit
   groupId?: string
   groupLabel?: string

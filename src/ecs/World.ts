@@ -121,6 +121,7 @@ export class World {
 
     // Run in user-defined order — no stage sorting
     for (const comp of components) {
+      comp._inCount = state.items.length
       if (comp.stage === PipelineStage.Shape && comp.generate) {
         const generated = comp.generate().map(item => ({ ...item, channels: {} }))
         state = { ...state, items: [...state.items, ...generated] }
@@ -129,6 +130,7 @@ export class World {
       } else if (comp.process) {
         state = { ...state, items: comp.process(state.items) }
       }
+      comp._outCount = state.items.length
     }
 
     return expandStamps(state.items)
